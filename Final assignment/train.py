@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from torchvision.datasets import Cityscapes, wrap_dataset_for_transforms_v2
+from torchvision.datasets import Cityscapes
 from torchvision.utils import make_grid
 from torchvision.transforms.v2 import (
     Compose,
@@ -113,9 +113,6 @@ def main(args):
         target_type="semantic", 
         transforms=transform
     )
-
-    train_dataset = wrap_dataset_for_transforms_v2(train_dataset)
-    valid_dataset = wrap_dataset_for_transforms_v2(valid_dataset)
 
     train_dataloader = DataLoader(
         train_dataset, 
@@ -215,7 +212,7 @@ def main(args):
                     os.remove(current_best_model_path)
                 current_best_model_path = os.path.join(
                     output_dir, 
-                    f"best_model-epoch={epoch:04}-val_loss={valid_loss:04}.pth"
+                    f"best_model-epoch={epoch:04}-val_loss={valid_loss:04}.pt"
                 )
                 torch.save(model.state_dict(), current_best_model_path)
         
@@ -226,7 +223,7 @@ def main(args):
         model.state_dict(),
         os.path.join(
             output_dir,
-            f"final_model-epoch={epoch:04}-val_loss={valid_loss:04}.pth"
+            f"final_model-epoch={epoch:04}-val_loss={valid_loss:04}.pt"
         )
     )
     wandb.finish()
