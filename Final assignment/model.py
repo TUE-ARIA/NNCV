@@ -27,6 +27,7 @@ class Model(nn.Module):
         super().__init__()
 
         # Encoding path
+        self.in_channels = in_channels
         self.inc = (DoubleConv(in_channels, 64))
         self.down1 = (Down(64, 128))
         self.down2 = (Down(128, 256))
@@ -48,8 +49,8 @@ class Model(nn.Module):
             x (torch.Tensor): Input tensor of shape (batch_size, in_channels, height, width).
         """
         # Check if the input tensor has the expected number of channels
-        if x.shape[1] != self.inc[0].in_channels:
-            raise ValueError(f"Expected {self.inc[0].in_channels} input channels, but got {x.shape[1]}")
+        if x.shape[1] != self.in_channels:
+            raise ValueError(f"Expected {self.in_channels} input channels, but got {x.shape[1]}")
         
         # Encoding path
         x1 = self.inc(x)

@@ -28,6 +28,7 @@ from torchvision.transforms.v2 import (
     Resize,
     ToImage,
     ToDtype,
+    InterpolationMode
 )
 
 from model import Model
@@ -91,27 +92,37 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Define the transforms to apply to the data
-    transform = Compose([
+    img_transform = Compose([
+    ToImage(),
+    Resize((256, 256)),
+    ToDtype(torch.float32, scale=True),
+    Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])
+
+    # Target transform (mask)
+    target_transform = Compose([
         ToImage(),
-        Resize((256, 256)),
-        ToDtype(torch.float32, scale=True),
-        Normalize((0.5,), (0.5,)),
+        Resize((256, 256), interpolation=InterpolationMode.NEAREST),
+        ToDtype(torch.int64),  # no scaling
     ])
 
     # Load the dataset and make a split for training and validation
     train_dataset = Cityscapes(
-        args.data_dir, 
-        split="train", 
-        mode="fine", 
-        target_type="semantic", 
-        transforms=transform
+    args.data_dir,
+    split="train",
+    mode="fine",
+    target_type="semantic",
+    transform=img_transform,
+    target_transform=target_transform,
     )
+
     valid_dataset = Cityscapes(
-        args.data_dir, 
-        split="val", 
-        mode="fine", 
-        target_type="semantic", 
-        transforms=transform
+        args.data_dir,
+        split="val",
+        mode="fine",
+        target_type="semantic",
+        transform=img_transform,
+        target_transform=target_transform,
     )
 
     train_dataloader = DataLoader(
