@@ -45,7 +45,15 @@ nav:
           - 4.1 Attention and the transformer: topics/04-transformers/1-attention.md
           - 4.2 Vision transformers: topics/04-transformers/2-vision-transformers.md
       - 5. Model performance evaluation: topics/05-evaluation/README.md
-      - 6. Self-supervised and transfer learning: topics/06-self-supervised-learning/README.md
+      - 6. Self-supervised and transfer learning:
+          - topics/06-self-supervised-learning/README.md
+          - 6.1 Transfer learning: topics/06-self-supervised-learning/1-transfer-learning.md
+          - 6.2 Predictive self-supervised learning: topics/06-self-supervised-learning/2-predictive-ssl.md
+          - 6.3 Evaluating representations: topics/06-self-supervised-learning/3-evaluation.md
+          - 6.4 Masked image modeling: topics/06-self-supervised-learning/4-masked-image-modeling.md
+          - 6.5 Contrastive learning and self-distillation: topics/06-self-supervised-learning/5-contrastive-learning.md
+          - 6.6 Weak supervision and vision-language models: topics/06-self-supervised-learning/6-weak-supervision.md
+          - 6.7 Foundation models: topics/06-self-supervised-learning/7-foundation-models.md
       - 7. Probabilistic and generative modeling:
           - topics/07-generative-models/README.md
           - 7.1 Probabilistic modeling: topics/07-generative-models/1-probabilistic-modeling.md
@@ -120,7 +128,11 @@ markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.highlight
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:          # ```mermaid blocks become diagrams, as on GitHub
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tasklist:
       custom_checkbox: true
 
