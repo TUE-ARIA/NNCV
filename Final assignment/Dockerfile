@@ -1,30 +1,20 @@
+# Submission image. Build from the `Final assignment` folder, choosing your track:
+#   docker build --build-arg TRACK=consistency -t nncv-consistency .
+# TRACK is one of: segmentation, consistency, realtime, generative.
+# Your weights must be at `Final assignment/model.pt`.
 FROM pytorch/pytorch:2.10.0-cuda12.6-cudnn9-runtime
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ARG TRACK
+RUN test -n "$TRACK" || (echo "Pass --build-arg TRACK=<track>" && exit 1)
+ENV TRACK=${TRACK} \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-dev \
-    python3-venv \
-    && rm -rf /var/lib/apt/lists/*
-
-
-# create virtual environment
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-
-# install dependencies (add any additional dependencies your project requires)
-RUN pip install --no-cache-dir \
-    torch torchvision --index-url https://download.pytorch.org/whl/cu126
-RUN pip install --no-cache-dir \
-    pillow
+# Add any extra packages your predictor needs (the server has no internet access at run time).
+RUN pip install --no-cache-dir pillow numpy
 
 WORKDIR /app
-COPY predict.py /app/predict.py
-COPY model.py /app/model.py
-COPY model.pt /app/model.pt
+# Copies the code and model.pt; data, checkpoints and logs are excluded by .dockerignore.
+COPY . /app
 
-ENTRYPOINT ["python", "/app/predict.py"]
+ENTRYPOINT ["python", "-m", "submission.run"]
