@@ -79,7 +79,7 @@ Final assignment/
 ├── evaluate.py        scores predictions locally with the server's metrics
 ├── tools/             builds the server-style evaluation sets (already done for you)
 ├── docs/              the general documentation pages
-├── main.sh, jobscript_slurm.sh, download_data.sh   Snellius scripts
+├── slurm/            cluster scripts: setup, submit, train and evaluate jobs
 └── Dockerfile         submission image
 ```
 

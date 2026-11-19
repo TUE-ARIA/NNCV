@@ -25,11 +25,12 @@ Your [predictor.py](predictor.py) must define `Predictor` with:
 - `step(frame)`: takes one `(H, W, 3)` uint8 RGB frame and returns an `(H, W)` uint8 mask with train IDs.
 
 ## Run it
+
+On Snellius (see [Snellius](../docs/snellius.md)):
+
 ```bash
-sbatch jobscript_slurm.sh segmentation                       # train on Snellius
-python -m submission.run --track segmentation --checkpoint checkpoints/segmentation-baseline/best.pt \
-    --input-dir data/eval/val/segmentation/images --output-dir predictions/segmentation
-python evaluate.py segmentation --pred-dir predictions/segmentation --gt-dir data/eval/val/segmentation/labels
+slurm/submit.sh train segmentation
+slurm/submit.sh evaluate segmentation checkpoints/segmentation-baseline/best.pt
 ```
 
 ## Ideas

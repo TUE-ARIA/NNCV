@@ -1,39 +1,57 @@
 # Snellius
 
-You train your models on the Snellius HPC cluster with Slurm. All jobs run inside an Apptainer container that has PyTorch and the other libraries installed.
+You train and evaluate your models on the Snellius cluster. You never run them directly: you **submit jobs** with Slurm, and every job runs inside a container that has PyTorch and the other libraries installed.
+
+All cluster scripts are in the `slurm/` folder:
+
+```text
+slurm/
+├── setup.sh             one-time setup: pulls the container and links the data
+├── submit.sh            submits a job with the right partition, GPU and CPUs
+├── servers/
+│   └── snellius.env     cluster settings and shared paths (partition, container, data)
+└── jobs/
+    ├── train.sh         train a model for a track
+    └── evaluate.sh      run and score a checkpoint exactly like the challenge server
+```
+
+You only use `setup.sh` (once) and `submit.sh`. Run every command from the `Final assignment` folder.
+
+## How to work
 
 You can work in two ways, and both are fine:
 
 - **Edit locally (recommended):** edit on your laptop, `git push`, then `git pull` on Snellius before you submit a job.
-- **Edit on the cluster:** connect with VSCode **Remote-SSH**, edit on the server, and commit and push from there.
+- **Edit on the cluster:** connect with VS Code **Remote - SSH**, edit on the server, and commit and push from there.
 
 ## Step 1: Clone your fork on Snellius
-Create a GitHub Personal Access Token (`Settings` → `Developer settings` → `Personal access tokens` → `Tokens (classic)`), log in to Snellius and run:
+
+Log in to Snellius and clone your fork with your GitHub Personal Access Token (see [Setup](setup.md#tips)):
 
 ```bash
 git clone https://<PAT>@github.com/<your-username>/NNCV.git
 cd "NNCV/Final assignment"
 ```
 
-Run `git pull` before every job so the cluster runs your latest code.
+Run `git pull` before every job, so the cluster runs your latest code.
 
-## Step 2: Link the data and get the container (once)
+## Step 2: One-time setup
 
 ```bash
-sbatch download_data.sh
+bash slurm/setup.sh
 ```
 
-When the job has finished you should have:
+This pulls the container to `container.sif` and links the shared course data. It takes a few minutes. Afterwards you have:
 
-- `container.sif`: the training container,
 - `data/atlas120k`: the dataset (`train`, `val`, `test`),
 - `data/eval`: the `val` and `test` splits in the server's format (see [Submitting](submission.md)),
-- `data/reference_segmenter.pth`: the ATLAS reference segmenter that computes mask Dice in the generative track.
+- `data/reference_segmenter.pth`: the ATLAS reference segmenter for the generative mask Dice.
 
-These are links to a shared course folder, so they don't use your storage quota. Don't write into them.
+These are links to a shared folder, so they don't use your storage quota. Don't write into them.
 
-## Step 3: Set your environment variables
-[.env](../.env) holds the environment variables passed into the container. Open it (`nano .env`, or through VSCode or MobaXterm) and set at least:
+## Step 3: Set your Weights & Biases key
+
+[.env](../.env) holds the environment variables passed into the container. Open it (`nano .env`, or through VS Code or MobaXterm) and set at least:
 
 ```env
 WANDB_API_KEY=<your W&B API key>
@@ -42,41 +60,51 @@ WANDB_DIR=/home/<username>/wandb
 
 Never commit your API key.
 
-## Step 4: Submit a training job
-Give the track as an argument:
+## Step 4: Train
 
 ```bash
-sbatch jobscript_slurm.sh segmentation     # or: consistency, realtime, generative
+slurm/submit.sh train segmentation                                   # the Dice baseline
+slurm/submit.sh train consistency --epochs 30 --experiment-id gru-30ep
 ```
 
-[jobscript_slurm.sh](../jobscript_slurm.sh) asks for the hardware and starts [main.sh](../main.sh) inside the container. `main.sh` holds the training command and hyperparameters for each track, so edit those there. Give every run its own `--experiment-id`, or it overwrites the checkpoints of an earlier run in `checkpoints/<experiment-id>/`.
+- The first argument after `train` is the track: `segmentation`, `consistency`, `realtime` or `generative`.
+- Everything after it is passed to `python -m <track>.train`. Without flags, the defaults in that `train.py` are used. To see all options: `apptainer exec container.sif python -m segmentation.train --help`.
+- Give every run its own `--experiment-id`. Checkpoints go to `checkpoints/<experiment-id>/`, so a reused name overwrites an earlier run.
 
-To score a checkpoint on the `val` split exactly as the server would:
+## Step 5: Evaluate
 
 ```bash
-sbatch jobscript_slurm.sh evaluate segmentation checkpoints/segmentation-baseline/best.pt
+slurm/submit.sh evaluate segmentation checkpoints/segmentation-baseline/best.pt
 ```
 
-## Slurm parameters
+This runs your `predictor.py` on the `val` split exactly as the challenge server does, and prints the server's metrics at the end of the job log. Add `test` at the end to use the validation server's data instead.
 
-| Parameter | Meaning |
+## Following your jobs
+
+`submit.sh` tells you where the log goes: `slurm/logs/<job>-<job id>.out`.
+
+| Command | What it does |
 |---|---|
-| `--nodes=1`, `--ntasks=1` | one process on one machine |
-| `--cpus-per-task=18` | CPU cores, mostly used for data loading (`--num-workers`) |
-| `--gpus=1` | one GPU |
-| `--partition=gpu_a100` | the A100 partition. See the [SURF partitions page](https://servicedesk.surf.nl/wiki/display/WIKI/Snellius+partitions+and+accounting) for what each partition costs. |
-| `--time=04:00:00` | the job is stopped after this time. Ask for enough time, but not much more: long jobs wait longer in the queue. |
+| `squeue --me` | your queued and running jobs |
+| `tail -f slurm/logs/train-<job id>.out` | follow a job's output |
+| `scancel <job id>` | cancel a job |
+| `accinfo` | your remaining compute budget |
 
-## Useful commands
+Training curves and example predictions also appear in your Weights & Biases project `5lsm0-atlas`.
 
-- `squeue -u $USER`: your queued and running jobs.
-- `scancel <job_id>`: cancel a job.
-- `tail -f slurm-<job_id>.out`: follow the output of a job.
-- `accinfo`: your remaining compute budget.
+## Changing resources
+
+Jobs ask for one A100 GPU with 18 CPU cores. Training may run for 4 hours, and evaluation for 1 hour. To change this for one job, put sbatch options before the job name:
+
+```bash
+slurm/submit.sh --time=08:00:00 train generative
+```
+
+Ask for enough time, but not much more: long jobs wait longer in the queue. The cluster settings themselves (partition, CPUs, container, data paths) are in [slurm/servers/snellius.env](../slurm/servers/snellius.env). You normally don't need to change them. See the [SURF partitions page](https://servicedesk.surf.nl/wiki/display/WIKI/Snellius+partitions+and+accounting) for what each partition costs.
 
 ## Remember
 
 - The last day on Snellius is **before the final week**. Have your final checkpoints trained and copied to your laptop by then.
-- Don't run training or evaluation on the login node. Always use `sbatch`.
+- Don't run training or evaluation on the login node. Always use `slurm/submit.sh`.
 
 Next: the tracks, starting with the [Dice track](../segmentation/README.md).

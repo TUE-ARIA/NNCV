@@ -21,11 +21,12 @@ Tip: initialise the U-Net from your Dice-track model with `--init-from checkpoin
 Same as the Dice track: `Predictor` with `reset()` and `step(frame)`. Frames come in temporal order, so keep your memory (hidden state, previous masks, features) in `self` and clear it in `reset()`. You can't look ahead at future frames.
 
 ## Run it
+
+On Snellius (see [Snellius](../docs/snellius.md)):
+
 ```bash
-sbatch jobscript_slurm.sh consistency
-python -m submission.run --track consistency --checkpoint checkpoints/consistency-baseline/best.pt \
-    --input-dir data/eval/val/segmentation/images --output-dir predictions/consistency
-python evaluate.py consistency --pred-dir predictions/consistency --gt-dir data/eval/val/segmentation/labels
+slurm/submit.sh train consistency
+slurm/submit.sh evaluate consistency checkpoints/consistency-baseline/best.pt
 ```
 
 ## Ideas

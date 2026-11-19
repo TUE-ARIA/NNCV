@@ -39,7 +39,7 @@ python evaluate.py consistency --pred-dir predictions/consistency --gt-dir data/
 On Snellius, one job runs both commands for you:
 
 ```bash
-sbatch jobscript_slurm.sh evaluate consistency checkpoints/my-run/best.pt
+slurm/submit.sh evaluate consistency checkpoints/my-run/best.pt
 ```
 
 The scores are in the `slurm-<job_id>.out` file. Don't run evaluation on the login node.

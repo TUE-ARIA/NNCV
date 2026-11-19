@@ -1,6 +1,6 @@
 """Datasets for ATLAS-120k.
 
-Expected layout (created by `download_data.sh`):
+Expected layout (linked by `slurm/setup.sh`):
 
     <root>/<split>/<procedure>/<video>/<clip>/images/frame_000964.jpg
     <root>/<split>/<procedure>/<video>/<clip>/machine_masks/frame_000964.png
@@ -61,7 +61,7 @@ def find_clips(root: str | Path, split: str) -> list[Clip]:
             procedure, video, clip = clip_dir.parts[-3:]
             clips.append(Clip(f"{procedure}__{video}__{clip}", frames))
     if not clips:
-        raise FileNotFoundError(f"No clips found in {Path(root, split)}. Did you run download_data.sh?")
+        raise FileNotFoundError(f"No clips found in {Path(root, split)}. Did you run slurm/setup.sh?")
     return clips
 
 

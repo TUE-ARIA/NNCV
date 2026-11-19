@@ -24,7 +24,7 @@ No. Your `Predictor` gets one frame at a time and can only remember the past.
 
 ### `No clips found in data/atlas120k/...`
 
-The data links are missing. Run `sbatch download_data.sh` once from the `Final assignment` folder, and check `ls -l data`.
+The data links are missing. Run `bash slurm/setup.sh` once from the `Final assignment` folder, and check `ls -l data`.
 
 ### `cd: Final: No such file or directory`
 
@@ -32,19 +32,19 @@ The folder name contains a space. Use quotes: `cd "Final assignment"`.
 
 ### My job stopped before training finished.
 
-It hit the `--time` limit in `jobscript_slurm.sh`. Ask for more time, use fewer epochs, or use a larger `--frame-stride`. Training saves `best.pt` after every epoch that improves validation, so you don't lose everything.
+It hit its time limit. Ask for more time (`slurm/submit.sh --time=08:00:00 train ...`), use fewer epochs, or use a larger `--frame-stride`. Training saves `best.pt` after every epoch that improves validation, so you don't lose everything.
 
 ### `CUDA out of memory`
 
-Lower `--batch-size` in `main.sh`. For the consistency track, `--clip-length` matters too.
+Lower the batch size, e.g. `slurm/submit.sh train consistency --batch-size 4`. For the consistency track, `--clip-length` matters too.
 
 ### Training is slow, but the GPU is barely used.
 
-Data loading is the bottleneck. Keep `--num-workers` close to `--cpus-per-task` (18), and use `--frame-stride` to skip near-identical neighbouring frames.
+Data loading is the bottleneck. Keep `--num-workers` close to the 18 CPU cores of a job, and use `--frame-stride` to skip near-identical neighbouring frames.
 
 ### W&B doesn't show my run.
 
-Check `WANDB_API_KEY` in `.env`, and look at the top of `slurm-<job_id>.out` for the login message.
+Check `WANDB_API_KEY` in `.env`, and look in `slurm/logs/train-<job id>.out` for W&B messages.
 
 ## Submission
 

@@ -6,3 +6,4 @@ wandb/
 *.out
 *.tar
 *.pt
+slurm/logs/

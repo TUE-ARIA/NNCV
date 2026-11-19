@@ -30,14 +30,14 @@ Your [predictor.py](predictor.py) must define `Predictor` with:
 - `generate(masks)`: takes `(16, 256, 384)` uint8 masks and returns `(16, 256, 384, 3)` uint8 RGB frames.
 
 ## Run it
+
+On Snellius (see [Snellius](../docs/snellius.md)):
+
 ```bash
-sbatch jobscript_slurm.sh generative
-python -m submission.run --track generative --checkpoint checkpoints/generative-baseline/last.pt \
-    --input-dir data/eval/val/generative/masks --output-dir predictions/generative
-python evaluate.py generative --pred-dir predictions/generative --gt-dir data/eval/val/generative \
-    --reference-model data/reference_segmenter.pth
+slurm/submit.sh train generative
+slurm/submit.sh evaluate generative checkpoints/generative-baseline/last.pt
 ```
-FID and FVD need many samples to be reliable, and they run faster on a GPU, so evaluate in a Slurm job.
+The evaluation also runs the ATLAS reference segmenter, so it takes a few minutes on a GPU.
 
 ## Ideas
 

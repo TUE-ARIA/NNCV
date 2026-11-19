@@ -16,11 +16,12 @@ Your local FPS (in `predictions/<track>/timing.json`) depends on your GPU. Only 
 Same as the Dice track: `Predictor` with `reset()` and `step(frame)`. Frames come one at a time and in order, so you can reuse work from the previous frame, but you can't batch future frames.
 
 ## Run it
+
+On Snellius (see [Snellius](../docs/snellius.md)):
+
 ```bash
-sbatch jobscript_slurm.sh realtime
-python -m submission.run --track realtime --checkpoint checkpoints/realtime-baseline/best.pt \
-    --input-dir data/eval/val/segmentation/images --output-dir predictions/realtime
-python evaluate.py realtime --pred-dir predictions/realtime --gt-dir data/eval/val/segmentation/labels
+slurm/submit.sh train realtime
+slurm/submit.sh evaluate realtime checkpoints/realtime-baseline/best.pt
 ```
 
 ## Ideas

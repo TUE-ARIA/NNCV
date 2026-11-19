@@ -3,7 +3,7 @@ data/
 checkpoints/
 predictions/
 wandb/
-img/
+docs/
 *.sif
 *.out
 *.tar
@@ -11,3 +11,4 @@ img/
 **/__pycache__/
 **/*.pt
 !model.pt
+slurm/
