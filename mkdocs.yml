@@ -25,7 +25,7 @@ nav:
       - Real-time: realtime/README.md
       - Generative: generative/README.md
   - Submitting: docs/submission.md
-  - Report & grading: docs/report.md
+  - Report, pitch & grading: docs/report.md
   - FAQ: docs/faq.md
 
 hooks:
@@ -61,6 +61,7 @@ theme:
 
 markdown_extensions:
   - admonition
+  - github-callouts           # GitHub alerts (> [!NOTE]) render as boxes on the site too
   - attr_list
   - md_in_html
   - tables

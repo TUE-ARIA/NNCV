@@ -1,12 +1,12 @@
 # FAQ & troubleshooting
 
-Can't find your problem here? Search the **Discussions** section of the repository, or ask there.
+Can't find your problem here? Search the **Discussions** section of the repository, or ask your question there.
 
 ## General
 
 ### Which tracks do I have to do?
 
-The Dice track, plus at least one of Consistency, Real-time and Generative. See the [overview](../README.md#benchmarks).
+The Dice track, plus at least one of Consistency, Real-time and Generative. See the [overview](../README.md#tracks).
 
 ### May I use pretrained models?
 
@@ -58,7 +58,7 @@ The server has no internet. Build the model with `pretrained=False` in `predicto
 
 ### `mask shape ... must equal frame shape ...`
 
-Masks must have the original height and width of the frame. Resize your logits back before taking the argmax (see `logits_to_mask` in `atlas/inference.py`).
+Your mask must have the same size as the input frame, 256×384. If your model works at another resolution, resize its logits back before taking the argmax (see `logits_to_mask` in `atlas/inference.py`).
 
 ### `expected uint8 frames of shape (16, 256, 384, 3)`
 

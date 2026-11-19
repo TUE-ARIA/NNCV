@@ -1,19 +1,27 @@
 # Real-time track
 
-**Goal:** the most accurate segmentation that runs at **at least 25 frames per second**, fast enough to show live during surgery.
+Get the most accurate segmentation that is fast enough to show live during surgery.
+
+- **Input:** One RGB frame of 256×384 at a time, in temporal order
+- **Output:** A 256×384 mask with train IDs 0-29
+- **Ranked on:** Dice, for submissions that reach at least 25 FPS on the server
+- **Baseline:** LR-ASPP with an ImageNet-pretrained MobileNetV3-Large
 
 ## Scoring
 
-- **FPS**: [submission/run.py](../submission/run.py) times every `step(frame)` call on the server GPU with batch size 1, preprocessing and postprocessing included. The first 10 frames are not timed (warm-up). FPS = timed frames / total time.
-- Submissions with **FPS ≥ 25** are ranked on **Dice** (same metric as the [Dice track](../segmentation/README.md)). Slower submissions are listed but not ranked.
+- **FPS:** the server times every `step(frame)` call on its GPU, preprocessing and postprocessing included, with one frame at a time. The first 10 frames are a warm-up and are not timed. FPS is the number of timed frames divided by their total time.
+- **Dice:** the same metric as in the [Dice track](../segmentation/README.md). Submissions with FPS ≥ 25 are ranked on it. Slower submissions are listed, but not ranked.
 
-Your local FPS (in `predictions/<track>/timing.json`) depends on your GPU. Only the server's number counts.
+> [!NOTE]
+> FPS depends on the GPU. Your local FPS (in `predictions/realtime-val/timing.json` after an evaluate job) is only an indication; the server's number counts.
 
 ## Baseline
-[model.py](model.py) is torchvision's **LR-ASPP** head on an ImageNet-pretrained **MobileNetV3-Large**. It trains with the same loop as the Dice track ([train.py](train.py) reuses [segmentation/train.py](../segmentation/train.py)). The [predictor](predictor.py) resizes on the GPU, which matters for speed with full-HD input frames.
 
-## Interface
-Same as the Dice track: `Predictor` with `reset()` and `step(frame)`. Frames come one at a time and in order, so you can reuse work from the previous frame, but you can't batch future frames.
+[model.py](model.py) is torchvision's **LR-ASPP** segmentation head on a **MobileNetV3-Large** backbone. [train.py](train.py) uses the same training loop as the Dice track.
+
+## Your predictor
+
+The same interface as the [Dice track](../segmentation/README.md#your-predictor): `reset()` at the start of every clip, then `step(frame)` for every frame. Frames arrive one at a time, so you can reuse work from the previous frame, but you can't batch frames.
 
 ## Run it
 
@@ -26,10 +34,10 @@ slurm/submit.sh evaluate realtime checkpoints/realtime-baseline/best.pt
 
 ## Ideas
 
-- Find where the time goes: preprocessing, the model, upsampling, or copying to the CPU.
-- Half precision, `torch.compile`, channels-last memory layout, or TensorRT (it must run inside the submission image).
-- Knowledge distillation from a large Dice-track model into a small one.
-- Lower input resolution with a better upsampling head. Plot Dice against FPS for several settings.
-- Use time: run the heavy model only every *k* frames and propagate the result in between.
+- **Profile first:** find out how much time goes to preprocessing, the model, upsampling and copying to the CPU.
+- **Faster inference:** half precision, `torch.compile`, channels-last memory layout, or TensorRT (it must run inside the submission image).
+- **Distillation** from a large Dice-track model into a small one.
+- **Use time:** run a heavy model only every *k* frames and propagate its result in between.
+- Plot Dice against FPS for several settings, and show where your models lie.
 
 Next: [Generative track](../generative/README.md).

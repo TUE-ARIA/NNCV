@@ -5,7 +5,7 @@ Before you start, install the tools below and create the accounts you need. This
 ## Tools and accounts
 
 | Tool | What you use it for | Get it |
-|---|---|---|
+| --- | --- | --- |
 | **VS Code** | Editing code, the terminal, and editing files on Snellius with the *Remote - SSH* extension | [code.visualstudio.com](https://code.visualstudio.com/download) |
 | **Git** + a **GitHub** account | Version control; you hand in your code as a public GitHub repository | [git-scm.com](https://git-scm.com/downloads), [github.com/join](https://github.com/join) |
 | **Weights & Biases** account | Following your training runs, which run on the cluster without a screen | [wandb.ai](https://wandb.ai/) |
@@ -44,7 +44,8 @@ git push --force-with-lease origin main
 
 Don't push to the course repository, and don't remove the `upstream` remote.
 
-> **Note:** the `Final assignment` folder name contains a space. Put quotes around paths that include it, e.g. `cd "NNCV/Final assignment"`.
+> [!NOTE]
+> The `Final assignment` folder name contains a space. Put quotes around paths that include it, e.g. `cd "NNCV/Final assignment"`.
 
 ## Check your setup
 

@@ -84,7 +84,7 @@ This runs your `predictor.py` on the `val` split exactly as the challenge server
 `submit.sh` tells you where the log goes: `slurm/logs/<job>-<job id>.out`.
 
 | Command | What it does |
-|---|---|
+| --- | --- |
 | `squeue --me` | your queued and running jobs |
 | `tail -f slurm/logs/train-<job id>.out` | follow a job's output |
 | `scancel <job id>` | cancel a job |

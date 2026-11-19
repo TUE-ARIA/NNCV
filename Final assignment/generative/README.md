@@ -1,33 +1,38 @@
 # Generative track
 
-**Goal:** generate realistic surgical video from segmentation masks. Given 16 consecutive masks, produce the 16 matching RGB frames. Synthetic video like this can be used to build training data, simulators or education material.
+Generate realistic surgical video from segmentation masks. Synthetic video like this can provide training data, simulation and teaching material.
 
-## Input and output
-
-- Input: 16 consecutive masks of **256×384** (height × width) with train IDs.
-- Output: 16 RGB frames of 256×384.
-- As in all tracks, every frame is center-cropped to the largest 3:2 region and resized to 256×384.
-- You get the whole clip at once, so the generation does not have to be causal.
+- **Input:** 16 consecutive masks of 256×384 with train IDs 0-29, all at once
+- **Output:** 16 RGB frames of 256×384
+- **Ranked on:** FVD, lower is better, for submissions whose mask Dice is at least 70% of that of real frames
+- **Baseline:** pix2pix, one frame at a time
 
 ## Scoring
-Ranked on **FVD** (lower is better), but only if your frames follow the masks: your **mask Dice must be at least 70% of the mask Dice of the real frames**. FID is reported as well. Discuss all three in your report.
 
-| Metric | What it measures | Lower/higher is better |
-|---|---|---|
-| **FVD** (Fréchet Video Distance) | Realism of the *clips*, including motion. Distance between R3D-18 (Kinetics-400) features of real and generated clips. | lower |
-| **FID** (Fréchet Inception Distance) | Realism of single *frames*. Distance between Inception-v3 (ImageNet) features of real and generated frames. | lower |
-| **Mask Dice** | Does the frame follow the mask? The [ATLAS model](https://github.com/rlpddejong/ATLAS-model) (ViT-B), a strong segmenter trained on ATLAS-120k, segments your frames, and its output is compared to the input masks. The same is done for the real frames, which gives the reference value for the 70% floor. | higher |
+| Metric | Measures | Better |
+| --- | --- | --- |
+| **FVD** (Fréchet Video Distance) | Realism of the clips, including motion: the distance between R3D-18 (Kinetics-400) features of real and generated clips. | lower |
+| **FID** (Fréchet Inception Distance) | Realism of single frames: the distance between Inception-v3 (ImageNet) features of real and generated frames. | lower |
+| **Mask Dice** | Whether the frames follow the masks. The [ATLAS model](https://github.com/rlpddejong/ATLAS-model), a strong segmenter trained on ATLAS-120k, segments your frames, and we compare its output with the input masks. The same is done for the real frames. | higher |
 
-These scores are only comparable within this challenge: the feature extractors and number of clips differ from those used in papers. See [atlas/metrics.py](../atlas/metrics.py) for the code.
+You are ranked on FVD, but only if your mask Dice is at least **70% of the mask Dice of the real frames**. This stops a model from producing realistic video that ignores the masks. FID is reported as well; discuss all three in your paper.
+
+These numbers are only comparable within this challenge: papers use other feature extractors and more clips. The code is in [atlas/metrics.py](../atlas/metrics.py) and [atlas/reference.py](../atlas/reference.py).
 
 ## Baseline
-[model.py](model.py) is **pix2pix**: a U-Net generator and a PatchGAN discriminator, trained with an LSGAN loss plus an L1 loss ([train.py](train.py)). It generates every frame independently, so the result flickers over time. That is what FVD picks up and what you can improve.
 
-## Interface
-Your [predictor.py](predictor.py) must define `Predictor` with:
+[model.py](model.py) is **pix2pix**: a U-Net generator and a PatchGAN discriminator, trained with a least-squares GAN loss and an L1 loss ([train.py](train.py)). It generates every frame independently, so its videos flicker. FVD picks this up, and it is the first thing to improve.
 
-- `__init__(checkpoint, device)`: load your model.
-- `generate(masks)`: takes `(16, 256, 384)` uint8 masks and returns `(16, 256, 384, 3)` uint8 RGB frames.
+## Your predictor
+
+[predictor.py](predictor.py) defines the class the server calls:
+
+| Method | Called | Does |
+| --- | --- | --- |
+| `__init__(checkpoint, device)` | once | loads your model |
+| `generate(masks)` | once per clip | takes `(16, 256, 384)` uint8 masks, returns `(16, 256, 384, 3)` uint8 RGB frames |
+
+You get the whole clip at once, so generation doesn't have to be causal.
 
 ## Run it
 
@@ -37,13 +42,14 @@ On Snellius (see [Snellius](../docs/snellius.md)):
 slurm/submit.sh train generative
 slurm/submit.sh evaluate generative checkpoints/generative-baseline/last.pt
 ```
+
 The evaluation also runs the ATLAS reference segmenter, so it takes a few minutes on a GPU.
 
 ## Ideas
 
-- Temporal conditioning: give the generator the previous generated frame, or use 3D convolutions or temporal attention.
-- Better image models: SPADE, OASIS, or conditional diffusion with ControlNet. Keep the server time limit in mind.
-- A video discriminator that judges short clips instead of single frames.
-- Fine-tune a pretrained image or video diffusion model on ATLAS.
+- **Temporal conditioning:** give the generator the previous generated frame, or use 3D convolutions or temporal attention.
+- **A video discriminator** that judges short clips instead of single frames.
+- **Stronger image models:** SPADE, OASIS, or conditional diffusion with ControlNet. Keep the server's time limit in mind.
+- **Fine-tuning** a pretrained image or video diffusion model on ATLAS.
 
 Next: [Submitting](../docs/submission.md).
