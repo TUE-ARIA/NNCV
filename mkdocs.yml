@@ -8,11 +8,21 @@ repo_name: TUE-ARIA/NNCV
 edit_uri: edit/main/Final%20assignment/
 
 docs_dir: Final assignment
-# Only Markdown pages and images become part of the site; links to code go to GitHub (see hooks).
+# Keep code and local files out of the site; links to them go to GitHub (see hooks).
+# Exclude by type: a catch-all `*` would also drop the theme's own CSS and JavaScript.
 exclude_docs: |
-  *
-  !*.md
-  !*.png
+  *.py
+  *.sh
+  *.env
+  .env
+  Dockerfile
+  .dockerignore
+  .gitignore
+  data/
+  checkpoints/
+  predictions/
+  wandb/
+  slurm/logs/
 
 nav:
   - Overview: README.md
