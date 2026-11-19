@@ -6,7 +6,7 @@ GitHub, but those files are not in the website, so here they are rewritten to Gi
 import os
 import posixpath
 import re
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 LINK = re.compile(r"(\]\()([^)\s]+)(\))")
 
@@ -19,7 +19,9 @@ def in_site(files, path):
 
 def on_page_markdown(markdown, page, config, files):
     docs_dir = os.path.relpath(config["docs_dir"], os.path.dirname(config["config_file_path"])).replace(os.sep, "/")
-    base = config["repo_url"].rstrip("/") + "/blob/main/" + quote(docs_dir)
+    base = config["repo_url"].rstrip("/") + "/blob/main"
+    if docs_dir != ".":
+        base += "/" + quote(docs_dir)
     page_dir = posixpath.dirname(page.file.src_uri)
 
     def rewrite(match):
@@ -27,7 +29,7 @@ def on_page_markdown(markdown, page, config, files):
         if re.match(r"^[a-z]+:|^#|^/", target):  # absolute URLs, anchors, site-absolute paths
             return match.group(0)
         path, _, anchor = target.partition("#")
-        resolved = posixpath.normpath(posixpath.join(page_dir, path))
+        resolved = posixpath.normpath(posixpath.join(page_dir, unquote(path)))  # links may encode spaces as %20
         if in_site(files, resolved):
             return match.group(0)  # a page or image of the site
         if in_site(files, posixpath.join(resolved, "README.md")):
