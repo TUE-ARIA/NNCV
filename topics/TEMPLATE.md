@@ -15,13 +15,18 @@ To add, merge or reorder topics, change the topic folders, the list in [README.m
 
 ## Page structure
 
-Copy the skeleton below into the topic's `README.md` and keep the headings, so all topics look the same.
+Copy the skeleton below into the topic's `README.md` and keep the headings, so all topics look the same. [Topic 6](06-self-supervised-learning/README.md) is a complete example. On a topic with subtopics, the takeaways, *In practice*, questions and further reading go on each subtopic page.
 
 ````markdown
 # 4. Transformers
 
 - **Slides:** [PDF](slides.pdf)
 - **Notebook:** [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](COLAB-LINK) or [download it](04-transformers.ipynb)
+
+> [!TIP]
+> **Key takeaways**
+>
+> - Three bullets a student should remember after this page.
 
 ## Learning goals
 
@@ -36,6 +41,19 @@ After this topic, you can:
 
 Text that follows the slides, one `###` section per block of slides.
 
+## In practice
+
+Optional: where to get models, a short code snippet, and how it applies to the final assignment.
+
+## Check your understanding
+
+<details class="question" markdown="1">
+<summary>A question from the lecture?</summary>
+
+The answer, hidden until the student clicks.
+
+</details>
+
 ## Further reading
 
 - A. Dosovitskiy et al., "An image is worth 16x16 words: Transformers for image recognition at scale," *ICLR*, 2021. [arXiv](https://arxiv.org/abs/2010.11929)
@@ -47,7 +65,7 @@ The Colab link is `https://colab.research.google.com/github/TUE-ARIA/NNCV/blob/m
 
 ## Topics with subtopics
 
-A large topic gets one page per **subtopic**, next to an overview page. The notes follow the subjects, not the lectures: a lecture can cover several subtopics, and a subtopic can span two lectures. Topics 3, 4 and 7 show the pattern:
+A large topic gets one page per **subtopic**, next to an overview page. The notes follow the subjects, not the lectures: a lecture can cover several subtopics, and a subtopic can span two lectures. Topic 6 is a complete example; topics 3, 4 and 7 show the pattern with placeholders:
 
 ```text
 topics/07-generative-models/
@@ -69,6 +87,9 @@ topics/07-generative-models/
 - **Maths:** inline `$\mathbf{x}$` and display `$$ ... $$`, written in LaTeX.
 - **Figures:** put images in the topic folder and include them with `![Short description](figure.png)`. Add a caption in italics on the line below.
 - **Citations in the text:** footnotes, `... as in ViT[^vit].`, with `[^vit]: Dosovitskiy et al., ICLR 2021.` at the end of the section. The full reference goes under *Further reading*.
+- **Diagrams:** draw architectures and pipelines as [Mermaid](https://mermaid.js.org/syntax/flowchart.html) diagrams in a ```` ```mermaid ```` code block. They render on GitHub and on the website, and stay editable as text. Put labels with special characters (`%`, `:`, brackets) in quotes: `B["Keep 25%"]`.
+- **Questions:** use the `<details class="question" markdown="1">` block from the skeleton. Keep the empty lines around the answer, or GitHub won't render it as Markdown.
+- **Code:** short snippets (up to about 10 lines) in ```` ```python ```` blocks; longer code belongs in the notebook.
 - **Boxes:** GitHub alerts render on both GitHub and the website:
 
   ```markdown
