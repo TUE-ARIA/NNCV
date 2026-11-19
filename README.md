@@ -40,13 +40,14 @@ The [final assignment](final-assignment/README.md#timeline) has its own timeline
 
 ## Contact
 
-The course is developed and taught by:
+The course material is maintained by:
 
 | Name | Email |
 | --- | --- |
 | Cris H.B. Claessens | [c.h.b.claessens@tue.nl](mailto:c.h.b.claessens@tue.nl) |
 | Tim J.M. Jaspers | [t.j.m.jaspers@tue.nl](mailto:t.j.m.jaspers@tue.nl) |
-| Francisco De Espírito Santo e Caetano | [f.t.de.espirito.santo.e.caetano@tue.nl](mailto:f.t.de.espirito.santo.e.caetano@tue.nl) |
+| Francisco Caetano | [f.caetano@tue.nl](mailto:f.caetano@tue.nl) |
+| Haiko Middeljans | [h.middeljans@tue.nl](mailto:h.middeljans@tue.nl) |
 | Lemar Abdi | [l.abdi@tue.nl](mailto:l.abdi@tue.nl) |
 | dr. Christiaan G.A. Viviers | [c.g.a.viviers@tue.nl](mailto:c.g.a.viviers@tue.nl) |
 
