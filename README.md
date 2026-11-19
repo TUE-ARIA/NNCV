@@ -15,11 +15,11 @@ The weekly assignments are structured to guide you through foundational and adva
 ### Final Assignment
 
 The **final assignment** is the cornerstone of this course and accounts for **50% of your final grade**. In this project, you will:
-1. Work on a real-world problem using the **CityScapes dataset**.
+1. Work on surgical video using the **ATLAS-120k dataset**: segmentation, temporal consistency, real-time inference or video generation.
 2. Train neural networks and validate their performance against established baselines.
 3. Document your results and insights in a detailed report.
 
-This final assignment requires a deeper dive into the subject, pushing you to apply the knowledge and skills gained throughout the course.
+This final assignment requires a deeper dive into the subject, pushing you to apply the knowledge and skills gained throughout the course. All its documentation is on the [final assignment website](https://tue-aria.github.io/NNCV/) (also readable on GitHub, starting from [Final assignment/README.md](Final%20assignment/README.md)).
 
 The final assignment will start in week 3 (February 24th), once all core lectures have been completed, ensuring you have the necessary foundation to work on the project.
 

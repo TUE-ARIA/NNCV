@@ -1,85 +1,90 @@
-# Final Assignment: Cityscape Challenge  
+# Final Assignment: ATLAS Surgical Video Challenge
 
-Welcome to the **Cityscape Challenge**, the final project for this course!  
+> 📖 Read this documentation as a website, with search and navigation, at **[tue-aria.github.io/NNCV](https://tue-aria.github.io/NNCV/)**.
 
-In this assignment, you'll put your knowledge of Neural Networks (NNs) for computer vision into action by tackling real-world problems using the **CityScapes dataset**. This dataset contains large-scale, high-quality images of urban environments, making it perfect for tasks like **semantic segmentation** and **object detection**.  
+In this assignment you train neural networks on **surgical videos**. You segment anatomy and instruments in laparoscopic and robotic surgery, make those segmentations stable over time or fast enough for the operating room, or generate realistic surgical video from segmentation masks. The final assignment is **50% of your course grade**.
 
-This challenge is designed to push your skills further, focusing on practical and often under-explored issues crucial for deploying computer vision models in real-world scenarios.  
+## How to read this documentation
 
----
+Read the pages in this order. Each page ends with a link to the next one.
 
-## Benchmarks  
+1. **Overview** (this page): the challenge, the rules and the timeline.
+2. [**Setup**](docs/setup.md): tools, accounts, and your fork of the repository.
+3. [**Snellius**](docs/snellius.md): get the data, train a baseline, evaluate it.
+4. **Tracks**: what each benchmark measures and how its baseline works: [Dice](segmentation/README.md), [Consistency](consistency/README.md), [Real-time](realtime/README.md), [Generative](generative/README.md).
+5. [**Submitting**](docs/submission.md): package your model and submit it to the server.
+6. [**Report & grading**](docs/report.md): what you hand in and how it is graded.
+7. [**FAQ**](docs/faq.md): answers to common problems.
 
-The competition comprises four benchmarks, each targeting a specific aspect of model performance:  
+## The data: ATLAS-120k
 
-1. **Peak performance**  
-   This benchmark evaluates your model's segmentation accuracy on a clean, standardized test set. Your goal is to achieve the highest segmentation scores here. **Everyone should submit a model to this benchmark optimized for maximum performance**. However, it's crucial to implement changes thoughtfully and be able to justify them in your research paper. Ultimately, the focus should be on the scientific contributions of your adaptations rather than solely aiming for the highest score.
+[ATLAS-120k](https://huggingface.co/datasets/TimJaspersTue/ATLAS-120k) has about 120,000 annotated frames from 100 surgical videos (14 procedure types), grouped into ~500 short clips. Frames are sampled at 15 fps, and every annotated frame has a mask with **30 classes**: background, tools, organs, vessels and more (see `atlas/classes.py`).
 
-The following benchmarks 2–4 are optional, and **you should select one** to compare against the Peak Performance benchmark. This allows you to analyze how your model performs under different conditions and gain deeper insights beyond just optimizing for the highest score.
+| Split | Use it for |
+|---|---|
+| `train` | Training. |
+| `val` | Model selection and tuning. You may also train your final model on it. |
+| `test` | **Do not train on it.** It is the validation set of the challenge server. |
+| hidden test | New videos annotated by surgeons. Only used in the final week (see [Timeline](#timeline)). |
 
-2. **Robustness**  
-   This benchmark tests how well your model performs under challenging conditions, such as changes in lighting, weather, or image quality. Consistency is key in this category.  
+The videos range from 4:3 (480×640) to 16:9 (1080×1920). To keep shapes consistent without stretching, **every frame is center-cropped to the largest 3:2 region and resized to 256×384**, in training and on the server, for every track.
 
-3. **Efficiency**  
-   Practical applications often require compact models. This benchmark emphasizes creating smaller models that maintain acceptable performance. It’s particularly relevant for edge devices where large models are infeasible.  
+You don't download anything: the data is in a shared folder on Snellius (see [Snellius](docs/snellius.md)).
 
-4. **Out-of-distribution detection**  
-   Models often encounter data that differs from the training distribution, leading to unreliable predictions. This benchmark evaluates your model's ability to detect and handle such out-of-distribution samples.  
+## Benchmarks
 
-> **IMPORTANT NOTE**: The **Peak Permomance** benchmark will also serve as the baseline server, and all participants must submit a baseline model here. This means that you can just train the already provided model in the repo. The training code for this model is also already provided. The baseline submission serves two purposes: ensuring that everyone is familiar with working on an HPC cluster and providing a reference point for evaluating the impact of different adaptations in your other benchmark submissions (you need to show these improvements compared to the baseline in your report!). The Baseline benchmark will close on **Tuesday, March 17, at 11:59 P.M. (GMT+1)**. To avoid last-minute issues, start preparing your submission early. This will also give you time to ask questions during the scheduled computer classes if needed.
+**Everyone** submits to the **Dice** track, and picks **at least one** of the other three. Every track has its own baseline. In your report, compare your method to the baseline **of that track**.
 
----
+| Track | Question | Ranked on | Baseline |
+|---|---|---|---|
+| [**Dice**](segmentation/README.md) (mandatory) | How accurate is the segmentation per frame? | Dice | U-Net, ResNet-18 encoder |
+| [**Consistency**](consistency/README.md) | Is the segmentation stable over time, without flicker? | (Dice + Change Dice) / 2 | U-Net + ConvGRU memory |
+| [**Real-time**](realtime/README.md) | What is the best accuracy at ≥ 25 frames per second? | Dice, if FPS ≥ 25 | LR-ASPP MobileNetV3 |
+| [**Generative**](generative/README.md) | Can you generate realistic surgical video from masks? | FVD, if mask Dice ≥ 70% of real frames | pix2pix, frame by frame |
 
-## Deliverables  
+### Rules
 
-Your final submission will consist of the following:  
+- **Causal segmentation.** In all segmentation tracks, the prediction for frame *t* may only use frames up to *t*. The submission interface enforces this: your model receives the frames one at a time.
+- **Pretrained weights.** Any publicly available weights are allowed. Say in your report which ones you used and what they were trained on. Some surgical models may have been trained on the same YouTube videos as ATLAS, so discuss that if it applies.
+- **No test data in training.** Never train or tune on the `test` split.
+- **The server code is fixed.** Between submissions, only your track's `predictor.py`, your model code and your weights change.
 
-### 1. Research paper  
-Write a **3-4 page research paper** in [IEEE double-column format](https://www.overleaf.com/latex/templates/ieee-conference-template/grfzhhncsfqn), addressing (at least) the following:  
+## Timeline
 
-- **Abstract**: Summarize the current problems, your key steps for addressing them and your main findings in about 100-300 words.
-- **Introduction**: Present the problem, challenges, and potential solutions based on existing literature.  
-- **Methods**: Describe your dataset(s), outline the baseline approach using an off-the-shelf segmentation model and define the enhancements you made for the specific benchmarks you participated.  
-- **Results**: Show and describe your results based on performance metrics and examples. Use figures and tables to support your findings. 
-- **Discussion**: Discuss the impact and potential of your main findings. Also discuss limitations and suggest future improvements.
+| When | What |
+|---|---|
+| TBD | Assignment starts, servers open. |
+| TBD | Deadline for a Dice-track baseline submission (proves your setup works). |
+| TBD | Last day on Snellius and on the validation servers. |
+| Final week (TBD) | Hidden test servers open: TBD submissions per track. Report the scores you get back in your paper. No Snellius access in this week, so have your final models trained before it starts. |
+| TBD | Report and code deadline. |
 
-> **Submission**: Submit your paper as a PDF document via **Canvas**.
+## Your first week
 
-The paper will be graded based on clarity, experimental design, insight, and originality.  
+- [ ] Install the tools and fork the repository ([Setup](docs/setup.md)).
+- [ ] Link the data and start a Dice-track baseline run on Snellius ([Snellius](docs/snellius.md)).
+- [ ] Evaluate the baseline locally, then submit it to the Dice validation server ([Submitting](docs/submission.md)).
+- [ ] Read the track pages and choose your second track.
 
-### 2. Code repository  
-Push all relevant code to a **public GitHub repository** with a README.md file detailing:  
-- Required libraries and installation instructions.  
-- Steps to run your code.  
-- Your Codalab username and TU/e email address for correct mapping across systems.  
+## Repository layout
 
-### 3. Challenge platform submissions  
-The Cityscape Challenge will be hosted on a **dedicated course compute platform** (instead of Codalab used in previous years).
+```text
+Final assignment/
+├── atlas/             shared code: classes, datasets, metrics (same as the server), training helpers
+├── segmentation/      Dice track:        model.py, train.py, predictor.py, README.md
+├── consistency/       Consistency track: model.py, train.py, predictor.py, README.md
+├── realtime/          Real-time track:   model.py, train.py, predictor.py, README.md
+├── generative/        Generative track:  model.py, train.py, predictor.py, README.md
+├── submission/run.py  entrypoint of the submission image (do not change)
+├── evaluate.py        scores predictions locally with the server's metrics
+├── tools/             builds the server-style evaluation sets (already done for you)
+├── docs/              the general documentation pages
+├── main.sh, jobscript_slurm.sh, download_data.sh   Snellius scripts
+└── Dockerfile         submission image
+```
 
-You will receive clear, step-by-step instructions for making submission once the final assignment begins.
+Run all Python commands from the `Final assignment` folder with `python -m`, e.g. `python -m segmentation.train`.
 
----
+Use ideas from the literature, but **cite all sources**: plagiarism is not tolerated. Ask your questions in the **Discussions** section of this repository, so that everyone benefits from the answers. Good luck! 🚀
 
-## Grading and Bonus Points  
-
-The final assignment accounts for **50% of your course grade**. Additionally, bonus points are available:  
-
-- **Top 3 in any benchmark**: +0.25 to your final assignment grade.  
-- **Best performance in any benchmark**: +0.5 to your final assignment grade.  
-
-For example, achieving the best performance in 'Peak Performance' and a top 3 spot in another benchmark will earn you a 0.75 bonus.  
-
-> **Note**: The bonus is optional. A great report with an innovative solution that doesn't rank highly can still earn a perfect score (10).  
-
----
-
-## Important Notes  
-
-- Ensure a proper **train-validation split** of the CityScapes dataset.  
-- Training your model may take multiple hours; plan accordingly.  
-- Use ideas from literature but remember to **cite all sources**. Plagiarism will not be tolerated.  
-- For questions or challenges, use the **Discussions** section of this repository to collaborate with peers.  
-
----
-
-We wish you the best of luck in this challenge and are excited to see the innovative solutions you develop! 🚀
+Next: [Setup](docs/setup.md).

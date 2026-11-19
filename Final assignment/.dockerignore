@@ -1,0 +1,13 @@
+# Keep the image small: only code and model.pt go in.
+data/
+checkpoints/
+predictions/
+wandb/
+img/
+*.sif
+*.out
+*.tar
+.env
+**/__pycache__/
+**/*.pt
+!model.pt

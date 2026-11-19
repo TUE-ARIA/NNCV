@@ -1,3 +1,8 @@
 data/
+checkpoints/
+predictions/
+wandb/
 *.sif
 *.out
+*.tar
+*.pt
