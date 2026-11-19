@@ -29,6 +29,7 @@ jobs:
       - run: mkdocs build --strict
         env:
           NO_MKDOCS_2_WARNING: "1"
+          DISABLE_MKDOCS_2_WARNING: "true"
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
