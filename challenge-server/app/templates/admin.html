@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Admin · {{ cfg.site.title }}{% endblock %}
+{% block content %}
+<div class="kicker">Staff</div>
+<h1>Admin</h1>
+<p class="lead">All submissions, with every log and hidden-test score. Settings such as quotas, the deadline and the
+  hidden test are changed in <code>config.yaml</code> on the server.</p>
+{% if flash %}<p class="panel">{{ flash }}</p>{% endif %}
+
+<h2>Submissions</h2>
+<form class="filter" method="get" action="/admin">
+  <select name="status" onchange="this.form.submit()" aria-label="Status">
+    <option value="">All statuses</option>
+    {% for s in ('queued', 'running', 'succeeded', 'failed', 'cancelled') %}<option {{ 'selected' if s == status }}>{{ s }}</option>{% endfor %}
+  </select>
+  <select name="track" onchange="this.form.submit()" aria-label="Track">
+    <option value="">All tracks</option>
+    {% for key, t in tracks.items() %}<option value="{{ key }}" {{ 'selected' if key == track_filter }}>{{ t.name }}</option>{% endfor %}
+  </select>
+  <select name="student" onchange="this.form.submit()" aria-label="Student">
+    <option value="">Everyone</option>
+    {% for s in students %}<option {{ 'selected' if s.name == student }}>{{ s.name }}</option>{% endfor %}
+  </select>
+  {% if status or track_filter or student %}<a href="/admin">clear</a>{% endif %}
+</form>
+{% if subs %}
+<table>
+  <tr><th>#</th><th>Submitted</th><th>Student</th><th>Track</th><th>Set</th><th>Status</th><th class="num">Score</th><th>Error</th><th></th></tr>
+  {% for s in subs %}
+  {% set t = tracks[s.track] %}
+  <tr>
+    <td><a href="/submission/{{ s.id }}">{{ s.id }}</a></td>
+    <td>{{ s.created_at[5:16].replace('T', ' ') }}</td>
+    <td>{{ s.student }}</td><td>{{ t.name }}</td><td>{{ cfg.test_sets[s.test_set].label.split(' (')[0] }}</td>
+    <td><span class="badge {{ s.status }}">{{ s.status }}</span></td>
+    <td class="num">{% if s.status == 'succeeded' %}{{ s.scores.get(t.ranked_on) | fmt(t.ranked_on) }}{% endif %}</td>
+    <td class="hint" style="margin:0">{{ (s.error or '')[:90] }}</td>
+    <td class="actions">
+      <a href="/submission/{{ s.id }}/log" target="_blank">log</a>
+      {% if s.status == 'queued' %}
+        <form method="post" action="/admin/submission/{{ s.id }}/cancel"><button class="link">cancel</button></form>
+      {% elif s.status != 'running' %}
+        <form method="post" action="/admin/submission/{{ s.id }}/requeue"
+              onsubmit='return confirm({{ ("Run submission " ~ s.id ~ " again? Its current result is removed.") | tojson }})'><button class="link">run again</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="hint">The 300 most recent submissions that match the filters.</p>
+{% else %}<p class="muted">No submissions.</p>{% endif %}
+
+<h2>Accounts</h2>
+<table>
+  <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
+  {% for s in students %}
+  <tr class="{{ 'unranked' if not s.active }}">
+    <td>{{ s.name }}</td><td>{{ s.email or '' }}</td>
+    <td>{{ 'staff' if s.is_staff else ('baseline' if s.is_baseline else 'student') }}</td>
+    <td>{{ 'active' if s.active else 'inactive' }}</td>
+    <td class="actions">
+      <form method="post" action="/admin/student/{{ s.id }}/password"
+            onsubmit='return confirm({{ ("Give " ~ s.name ~ " a new password? The old one stops working.") | tojson }})'><button class="link">new password</button></form>
+      {% if me.id != s.id %}
+        <form method="post" action="/admin/student/{{ s.id }}/{{ 'deactivate' if s.active else 'activate' }}"><button class="link">{{ 'deactivate' if s.active else 'activate' }}</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="hint">Inactive accounts can't submit and are hidden from the name lists. Roles are set with
+  <code>manage.py import-students</code> (column <code>role</code>) or <code>manage.py set-role</code>.</p>
+{% endblock %}

@@ -18,6 +18,7 @@
       {% endfor %}
       <a href="/queue" class="{{ 'active' if page == 'queue' }}">Queue</a>
       <a href="/help" class="{{ 'active' if page == 'help' }}">How to submit</a>
+      {% if staff %}<a href="/admin" class="{{ 'active' if page == 'admin' }}">Admin</a>{% endif %}
     </nav>
     <div class="who">
       {% if me %}<a href="/me">{{ me.name }}</a> · <a href="/logout">sign out</a>{% else %}<a href="/me">My submissions</a>{% endif %}

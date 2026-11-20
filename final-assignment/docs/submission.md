@@ -78,7 +78,7 @@ Run it from the `final-assignment` folder. On Windows PowerShell, write `${PWD}`
 
 ## 5. Upload it
 
-Open the challenge website on the TU/e network or over VPN, go to the page of your track, choose your name, enter the password you received from the staff, and upload the zip.
+Open the challenge website, **[http://131.155.127.10](http://131.155.127.10/)**, on the TU/e network or over the TU/e VPN. Go to the page of your track, choose your name, enter the password you received from the staff, and upload the zip.
 
 - You can follow your submission in the queue; its scores and log appear on the submission page and under *My submissions*.
 - **Validation**: scores on the `test` split, shown on the leaderboard. These are the scores you report in your paper.

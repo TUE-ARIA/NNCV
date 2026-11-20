@@ -77,6 +77,7 @@ nav:
           - Real-time: final-assignment/realtime/README.md
           - Generative: final-assignment/generative/README.md
       - Submitting: final-assignment/docs/submission.md
+      - Challenge website: http://131.155.127.10/
       - Report, pitch & grading: final-assignment/docs/report.md
       - FAQ: final-assignment/docs/faq.md
 
@@ -94,15 +95,15 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: red
-      accent: red
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: red
-      accent: red
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Light mode
@@ -136,6 +137,9 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tasklist:
       custom_checkbox: true
+
+extra_css:
+  - website/tue.css             # TU/e red, as on the challenge website
 
 extra_javascript:
   - website/mathjax.js          # MathJax settings; must load before MathJax itself

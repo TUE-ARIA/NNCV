@@ -1,4 +1,6 @@
 """Challenge rules: who may submit what, the queue order, and the leaderboards."""
+from pathlib import Path
+
 from app import db
 from app.settings import config, now, parse_time, week_start
 
@@ -27,7 +29,7 @@ def submission_check(student: dict, track: str, test_set: str) -> str | None:
         return "You already have a submission waiting or running. Submit again when it has finished."
 
     used, limit = quota_used(student["id"], track, test_set), set_cfg["succeeded_per_week"]
-    if not student["is_baseline"] and used >= limit:
+    if not (student["is_baseline"] or student["is_staff"]) and used >= limit:
         return f"You have used all {limit} successful submissions to this set for this week. The quota resets on Monday."
     return None
 
@@ -63,6 +65,24 @@ def next_job() -> dict | None:
     return order[0] if order else None
 
 
+def cancel(sub: dict) -> str | None:
+    """Cancel a waiting submission; returns the reason if that is not possible."""
+    if sub["status"] != "queued":
+        return f"Submission {sub['id']} is {sub['status']}; only waiting submissions can be cancelled."
+    db.update_submission(sub["id"], status="cancelled", finished_at=db.stamp(), error="Cancelled by staff.")
+    return None
+
+
+def requeue(sub: dict) -> str | None:
+    """Put a finished submission back in the queue; returns the reason if that is not possible."""
+    if sub["status"] in PENDING:
+        return f"Submission {sub['id']} is already {sub['status']}."
+    if not Path(sub["upload_path"]).exists():
+        return "The upload of this submission no longer exists."
+    db.update_submission(sub["id"], status="queued", started_at=None, finished_at=None, scores=None, error=None)
+    return None
+
+
 # ------------------------------------------------------------------ ranking
 def ranking(track: str, scores: dict | None) -> tuple[float | None, str | None]:
     """(value to rank on, reason it is not ranked)."""
@@ -91,6 +111,7 @@ def leaderboard(track: str, test_set: str, student: str | None = None) -> list[d
     entries = []
     for r in rows:
         r["value"], r["unranked"] = ranking(track, r["scores"])
+        r["reference"] = bool(r["is_baseline"] or r["is_staff"])   # shown for comparison, never ranked
         entries.append(r)
     if not student:                                   # keep each student's best entry
         best = {}
@@ -101,13 +122,14 @@ def leaderboard(track: str, test_set: str, student: str | None = None) -> list[d
         entries = list(best.values())
 
     def sort_key(r):
-        group = 0 if r["unranked"] is None and not r["is_baseline"] else (1 if r["is_baseline"] else 2)
-        return (group if group != 1 else 0, -(sign * r["value"]) if r["value"] is not None else float("inf"))
+        # ranked students and reference entries sorted together by score; unranked students last
+        group = 1 if r["unranked"] is not None and not r["reference"] else 0
+        return (group, -(sign * r["value"]) if r["value"] is not None else float("inf"))
 
     entries.sort(key=sort_key)
     rank = 0
     for r in entries:
-        if r["unranked"] is None and not r["is_baseline"]:
+        if r["unranked"] is None and not r["reference"]:
             rank += 1
             r["rank"] = rank
         else:

@@ -6,6 +6,7 @@ import os
 import shutil
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
@@ -15,7 +16,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import db, rules
 from app.packages import PackageError, check_image_tar, check_zip
-from app.security import check_password
+from app.security import check_password, hash_password, new_password
 from app.settings import TEST_SETS, config, data_dir, now, parse_time, week_start
 
 HERE = Path(__file__).parent
@@ -49,10 +50,21 @@ templates.env.filters["fmt"] = lambda v, m: fmt(m, v)
 templates.env.globals.update(METRIC_LABELS=METRIC_LABELS)
 
 
+def signed_in(request) -> dict | None:
+    """The signed-in account, if any."""
+    sid = request.session.get("student_id")
+    return db.student_by_id(sid) if sid else None
+
+
+def is_staff(request) -> bool:
+    me = signed_in(request)
+    return bool(me and me["is_staff"] and me["active"])
+
+
 def render(request, name, **ctx):
     cfg = config()
-    me = request.session.get("student_id")
-    ctx.update(cfg=cfg, tracks=cfg["tracks"], me=db.student_by_id(me) if me else None,
+    me = signed_in(request)
+    ctx.update(cfg=cfg, tracks=cfg["tracks"], me=me, staff=bool(me and me["is_staff"] and me["active"]),
                deadline=parse_time(cfg["submissions"].get("deadline")))
     return templates.TemplateResponse(request, name, ctx)
 
@@ -75,13 +87,16 @@ def track_page(request: Request, track: str, set: str = "validation", student: s
     if track not in config()["tracks"] or set not in TEST_SETS:
         return message(request, "Not found", "This track or test set does not exist.", 404)
     return render(request, "track.html", track=track, test_set=set, student=student,
-                  students=db.students(), rows=rules.leaderboard(track, set, student or None))
+                  students=db.students(), rows=rules.leaderboard(track, set, student or None),
+                  show_scores=scores_visible(request, set))
 
 
 @app.get("/partials/leaderboard/{track}", response_class=HTMLResponse)
 def leaderboard_partial(request: Request, track: str, set: str = "validation", student: str = ""):
+    if track not in config()["tracks"] or set not in TEST_SETS:
+        return HTMLResponse("", status_code=404)
     return render(request, "_leaderboard.html", track=track, test_set=set, student=student,
-                  rows=rules.leaderboard(track, set, student or None))
+                  rows=rules.leaderboard(track, set, student or None), show_scores=scores_visible(request, set))
 
 
 @app.get("/queue", response_class=HTMLResponse)
@@ -150,8 +165,9 @@ def submit(request: Request, track: str, student: str = Form(...), password: str
 
 
 # ------------------------------------------------------------------ results
-def visible_scores(sub) -> bool:
-    return config()["test_sets"][sub["test_set"]]["show_scores"]
+def scores_visible(request, test_set: str) -> bool:
+    """Scores of a test set are shown once revealed in config.yaml, and always to staff."""
+    return config()["test_sets"][test_set]["show_scores"] or is_staff(request)
 
 
 @app.get("/submission/{sub_id}", response_class=HTMLResponse)
@@ -162,21 +178,24 @@ def submission_page(request: Request, sub_id: int):
     owner = request.session.get("student_id") == sub["student_id"]
     queue = rules.queue()
     position = next((i for i, q in enumerate(queue) if q["id"] == sub_id), None)
-    return render(request, "submission.html", sub=sub, owner=owner, position=position,
-                  show_scores=visible_scores(sub))
+    return render(request, "submission.html", sub=sub, owner=owner or is_staff(request), position=position,
+                  show_scores=scores_visible(request, sub["test_set"]))
 
 
 @app.get("/submission/{sub_id}/log", response_class=PlainTextResponse)
 def submission_log(request: Request, sub_id: int):
     sub = db.submission(sub_id)
-    if not sub or request.session.get("student_id") != sub["student_id"]:
+    staff = is_staff(request)
+    if not sub or (request.session.get("student_id") != sub["student_id"] and not staff):
         return PlainTextResponse("Sign in on 'My submissions' to see your logs.", status_code=403)
     work = data_dir() / "jobs" / str(sub_id)
+    # the scorer log is for staff only: it can reveal ground-truth paths
     parts = []
-    for name in ("inference.log",):                      # the scorer log stays with staff: it can reveal ground truth paths
+    for name in ("inference.log", "score.log") if staff else ("inference.log",):
         f = work / name
         if f.exists():
-            parts.append(f.read_text(encoding="utf-8", errors="replace"))
+            text = f.read_text(encoding="utf-8", errors="replace")
+            parts.append(f"===== {name}\n{text}" if staff else text)
     return PlainTextResponse("\n".join(parts) or "No log yet.")
 
 
@@ -204,3 +223,54 @@ def login(request: Request, student: str = Form(...), password: str = Form(...))
 def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/", status_code=303)
+
+
+# ------------------------------------------------------------------ staff
+def back_to_admin(request, text):
+    """Back to the admin page with the same filters, showing `text` once."""
+    request.session["flash"] = text
+    ref = urlparse(request.headers.get("referer", ""))
+    return RedirectResponse(f"/admin?{ref.query}" if ref.path == "/admin" else "/admin", status_code=303)
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request, status: str = "", track: str = "", student: str = ""):
+    if not is_staff(request):
+        return message(request, "Staff only", "Sign in with a staff account to see this page.", 403)
+    where, params = ["1=1"], []
+    for column, value in (("s.status", status), ("s.track", track), ("st.name", student)):
+        if value:
+            where.append(f"{column} = ?")
+            params.append(value)
+    subs = db.submissions(" AND ".join(where), tuple(params), limit=300)
+    return render(request, "admin.html", page="admin", subs=subs, students=db.students(include_inactive=True),
+                  status=status, track_filter=track, student=student, flash=request.session.pop("flash", None))
+
+
+@app.post("/admin/submission/{sub_id}/{action}")
+def admin_submission(request: Request, sub_id: int, action: str):
+    if not is_staff(request):
+        return message(request, "Staff only", "Sign in with a staff account to do this.", 403)
+    sub = db.submission(sub_id)
+    if not sub or action not in ("cancel", "requeue"):
+        return message(request, "Not found", "This submission or action does not exist.", 404)
+    reason = rules.cancel(sub) if action == "cancel" else rules.requeue(sub)
+    return back_to_admin(request, reason or f"Submission {sub_id}: {'cancelled' if action == 'cancel' else 'queued again'}.")
+
+
+@app.post("/admin/student/{sid}/{action}")
+def admin_student(request: Request, sid: int, action: str):
+    if not is_staff(request):
+        return message(request, "Staff only", "Sign in with a staff account to do this.", 403)
+    st = db.student_by_id(sid)
+    if not st or action not in ("password", "activate", "deactivate"):
+        return message(request, "Not found", "This account or action does not exist.", 404)
+    if action == "password":
+        pw = new_password()
+        db.update_student(sid, password_hash=hash_password(pw))
+        return render(request, "message.html", title="New password",
+                      text=f"New password for {st['name']}: {pw}  (shown once; the old password no longer works)")
+    if sid == request.session.get("student_id"):
+        return back_to_admin(request, "You cannot deactivate your own account.")
+    db.update_student(sid, active=int(action == "activate"))
+    return back_to_admin(request, f"{st['name']}: {action}d.")

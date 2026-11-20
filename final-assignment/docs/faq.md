@@ -44,6 +44,10 @@ Check `WANDB_API_KEY` in `.env`, and look in `slurm/logs/train-<job id>.out` for
 
 ## Submission
 
+### The challenge website doesn't load.
+
+It is only reachable from the TU/e network. At home, connect to the TU/e VPN first. Type the address with `http://`, not `https://`: [http://131.155.127.10](http://131.155.127.10/). Some browsers switch to `https://` by themselves, and that doesn't work.
+
 ### `Missing key(s)` or `Unexpected key(s)` when loading `model.pt`.
 
 The checkpoint doesn't match the model that `predictor.py` builds, for example when you trained with other settings or submitted a checkpoint from another track.
