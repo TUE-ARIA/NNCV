@@ -23,6 +23,7 @@ exclude_docs: |
   .gitattributes
   /site/
   /topics/TEMPLATE.md
+  /challenge-server/
   data/
   checkpoints/
   predictions/

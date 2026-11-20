@@ -48,7 +48,7 @@ Check `WANDB_API_KEY` in `.env`, and look in `slurm/logs/train-<job id>.out` for
 
 The checkpoint doesn't match the model that `predictor.py` builds, for example when you trained with other settings or submitted a checkpoint from another track.
 
-### The image tries to download weights and fails.
+### My code tries to download weights and fails.
 
 The server has no internet. Build the model with `pretrained=False` in `predictor.py` and load your own checkpoint.
 
@@ -60,13 +60,17 @@ Your mask must have the same size as the input frame, 256×384. If your model wo
 
 A generative `Predictor` must return one uint8 RGB frame per input mask, at 256×384.
 
+### `No module named ...`
+
+The package is not in your base image. Choose a larger one (`--base-image transformers` or `generative`), or add its wheels with `--wheels` (see [Submitting](submission.md#3-make-the-zip)). If the missing module is one of your own folders, make sure your track's code imports it, so `submission.package` includes it.
+
 ### The scores look wrong, or are 0.
 
-Check that you built the image with the right `--build-arg TRACK=...`, and run it locally first (see [Submitting](submission.md)).
+Check that you made the zip for the right `--track` and with the right checkpoint, and test it locally first (see [Submitting](submission.md#4-test-it-in-the-same-environment-optional)).
 
-### My `.tar` is many gigabytes.
+### My zip is very large.
 
-Only code and `model.pt` belong in the image. `.dockerignore` excludes `data/`, `checkpoints/` and other `.pt` files, so don't remove those lines.
+It should hold only code and weights. If it holds more, check that `--checkpoint` points to one file (or to a folder with only the weights).
 
 ### My local FPS is different from the server's.
 

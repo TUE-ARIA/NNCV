@@ -47,7 +47,8 @@ def evaluate_segmentation(pred_dir: Path, gt_dir: Path) -> dict:
 
 
 @torch.no_grad()
-def evaluate_generative(pred_dir: Path, gt_dir: Path, reference_model: str | None, batch_size: int = 8) -> dict:
+def evaluate_generative(pred_dir: Path, gt_dir: Path, reference_model: str | None, batch_size: int = 8,
+                        floor: float = MASK_DICE_FLOOR) -> dict:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image_net, video_net = InceptionFeatures().to(device), VideoFeatures().to(device)
     segmenter = None
@@ -82,7 +83,7 @@ def evaluate_generative(pred_dir: Path, gt_dir: Path, reference_model: str | Non
     if segmenter is not None:
         scores["mask_dice"] = float(np.mean(mask_dices["fake"]))
         scores["mask_dice_real"] = float(np.mean(mask_dices["real"]))  # what real frames reach
-        scores["meets_mask_dice_floor"] = scores["mask_dice"] >= MASK_DICE_FLOOR * scores["mask_dice_real"]
+        scores["meets_mask_dice_floor"] = scores["mask_dice"] >= floor * scores["mask_dice_real"]
     return scores
 
 
@@ -93,18 +94,23 @@ def main():
     parser.add_argument("--gt-dir", type=Path, required=True,
                         help="Label folder (segmentation tracks) or folder with frames/ and masks/ (generative)")
     parser.add_argument("--reference-model", type=str, default=None, help="Generative only: ATLAS reference weights for mask Dice")
+    parser.add_argument("--min-fps", type=float, default=MIN_FPS, help="Real-time threshold")
+    parser.add_argument("--mask-dice-floor", type=float, default=MASK_DICE_FLOOR, help="Generative mask-Dice floor")
+    parser.add_argument("--out", type=Path, default=None, help="Also write the scores to this JSON file")
     args = parser.parse_args()
 
     if args.track == "generative":
-        scores = evaluate_generative(args.pred_dir, args.gt_dir, args.reference_model)
+        scores = evaluate_generative(args.pred_dir, args.gt_dir, args.reference_model, floor=args.mask_dice_floor)
     else:
         scores = evaluate_segmentation(args.pred_dir, args.gt_dir)
         timing_file = args.pred_dir / "timing.json"
         if timing_file.exists():
             scores["fps"] = json.loads(timing_file.read_text())["fps"]
             if args.track == "realtime":
-                scores["meets_fps_threshold"] = scores["fps"] >= MIN_FPS
+                scores["meets_fps_threshold"] = scores["fps"] >= args.min_fps
     print(json.dumps(scores, indent=2))
+    if args.out:
+        args.out.write_text(json.dumps(scores))
 
 
 if __name__ == "__main__":

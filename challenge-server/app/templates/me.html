@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="kicker">My submissions</div>
+<h1>{{ me.name }}</h1>
+<p class="lead">Your quota counts successful submissions since Monday {{ week.strftime('%d %B') }}, plus submissions still waiting or running.</p>
+
+<h2>Submissions left this week</h2>
+<table style="max-width:640px">
+  <tr><th>Track</th>{% for key, s in cfg.test_sets.items() %}<th class="num">{{ s.label.split(' (')[0] }}</th>{% endfor %}</tr>
+  {% for key, t in tracks.items() %}
+  <tr><td>{{ t.name }}</td>
+    {% for skey, s in cfg.test_sets.items() %}
+      <td class="num">{% if s.enabled %}{{ [s.succeeded_per_week - quota[key][skey], 0] | max }} of {{ s.succeeded_per_week }}{% else %}<span class="muted">closed</span>{% endif %}</td>
+    {% endfor %}</tr>
+  {% endfor %}
+</table>
+{% if not cfg.quota_per_track %}<p class="hint">The quota is shared by all tracks.</p>{% endif %}
+
+<h2>All submissions</h2>
+{% if subs %}
+<table>
+  <tr><th>#</th><th>Track</th><th>Set</th><th>Description</th><th>Submitted</th><th>Status</th><th class="num">Score</th><th></th></tr>
+  {% for s in subs %}
+  {% set t = tracks[s.track] %}
+  <tr>
+    <td>{{ s.id }}</td><td>{{ t.name }}</td><td>{{ cfg.test_sets[s.test_set].label.split(' (')[0] }}</td>
+    <td>{{ s.note or '' }}</td><td>{{ s.created_at[5:16].replace('T', ' ') }}</td>
+    <td><span class="badge {{ s.status }}">{{ s.status }}</span></td>
+    <td class="num">{% if s.status == 'succeeded' and cfg.test_sets[s.test_set].show_scores %}{{ s.scores.get(t.ranked_on) | fmt(t.ranked_on) }}{% endif %}</td>
+    <td><a href="/submission/{{ s.id }}">details</a> · <a href="/submission/{{ s.id }}/log" target="_blank">log</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="muted">No submissions yet. Choose a track at the top to submit.</p>{% endif %}
+{% endblock %}

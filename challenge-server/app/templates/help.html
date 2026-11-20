@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% set page = 'help' %}
+{% block content %}
+<div class="kicker">How to submit</div>
+<h1>Submitting your model</h1>
+<p class="lead">You upload your code and weights as a zip; the server runs them in one of the environments below, on its
+  GPU and without internet access. The full guide is in the <a href="{{ cfg.site.course_website }}final-assignment/docs/submission/">course documentation</a>.</p>
+
+<h2>1. Make the zip</h2>
+<p>From the <code>final-assignment</code> folder of your repository:</p>
+<pre>python -m submission.package --track consistency --checkpoint checkpoints/my-run/best.pt --base-image pytorch</pre>
+<p>This creates <code>submission_consistency.zip</code> with:</p>
+<pre>submission.yaml     which base image, which checkpoint
+model.pt            your weights
+consistency/        your track folder: predictor.py, model.py, ...
+wheels/             optional: extra packages as .whl files</pre>
+
+<h2>2. Choose an environment</h2>
+<table style="max-width:860px">
+  <tr><th>base_image</th><th>Contents</th><th>Docker image (to test locally and on Snellius)</th></tr>
+  {% for key, b in cfg.base_images.items() %}
+  <tr><td><code>{{ key }}</code></td><td>{{ b.description }}</td><td><code>{{ b.image }}</code></td></tr>
+  {% endfor %}
+</table>
+<p class="hint">Need a package that is not in the image? Put its wheel files in <code>wheels/</code>
+  (<code>pip download --only-binary=:all: -d wheels &lt;package&gt;</code>); they are installed offline before your code runs.</p>
+
+<h2>3. Upload it</h2>
+<p>Open the page of your track, choose your name, enter your password and upload the zip. You can follow the
+  <a href="/queue">queue</a>; your results and log appear on the submission page and under <a href="/me">My submissions</a>.</p>
+
+{% if cfg.submissions.allow_custom_images %}
+<h2>Advanced: a complete Docker image</h2>
+<p>If the environments above are not enough, upload a complete image (<code>docker save -o image.tar &lt;name&gt;</code>).
+  It must contain Python with PyTorch, NumPy and Pillow, your track folder in <code>/app</code> and your weights in
+  <code>/app/model.pt</code>. The server runs its own copy of the harness in it. Images are large: use this only if you need it.</p>
+{% endif %}
+
+<h2>Limits</h2>
+<table style="max-width:640px">
+  <tr><td>Upload size</td><td>{{ cfg.submissions.max_upload_gb }} GB (zip){% if cfg.submissions.allow_custom_images %}, {{ cfg.submissions.max_custom_image_gb }} GB (image){% endif %}</td></tr>
+  <tr><td>Run time</td><td>{% for key, t in tracks.items() %}{{ t.name }}: {{ t.time_limit_min }} min{{ ', ' if not loop.last }}{% endfor %}</td></tr>
+  <tr><td>Memory</td><td>{{ cfg.sandbox.memory_gb }} GB RAM, {{ cfg.sandbox.shm_gb }} GB shared memory, one GPU</td></tr>
+  <tr><td>Internet</td><td>none: everything your code needs must be in the zip or the image</td></tr>
+  {% for key, s in cfg.test_sets.items() %}
+  <tr><td>{{ s.label }}</td><td>{% if s.enabled %}{{ s.succeeded_per_week }} successful submission(s) per week{{ ' per track' if cfg.quota_per_track }}{% else %}not open yet{% endif %}</td></tr>
+  {% endfor %}
+  <tr><td>At the same time</td><td>{{ cfg.submissions.max_pending_per_student }} submission(s) waiting or running</td></tr>
+</table>
+<p class="hint">Failed submissions don't count towards your quota. The quota resets every Monday at 00:00.</p>
+{% endblock %}

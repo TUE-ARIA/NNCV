@@ -1,0 +1,30 @@
+# Challenge platform: `docker compose up -d --build` from this folder.
+#
+# /srv/nncv is mounted at the same path inside the containers, because the worker starts
+# student jobs as sibling containers and Docker needs the host paths for their mounts.
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${NNCV_PORT:-80}:8000"
+    env_file: .env
+    environment:
+      NNCV_CONFIG: /srv/app/config.yaml
+      TMPDIR: /srv/nncv/data/tmp          # large uploads are buffered here, not in the container
+    volumes:
+      - ./config.yaml:/srv/app/config.yaml:ro
+      - /srv/nncv:/srv/nncv
+
+  worker:
+    build: .
+    command: python -m app.worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NNCV_CONFIG: /srv/app/config.yaml
+    volumes:
+      - ./config.yaml:/srv/app/config.yaml:ro
+      - /srv/nncv:/srv/nncv
+      - /var/run/docker.sock:/var/run/docker.sock   # starts the sandboxed job containers

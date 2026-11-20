@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% set page = 'queue' %}
+{% block content %}
+<div class="kicker">Queue</div>
+<h1>Submissions waiting and running</h1>
+<p class="lead">One submission runs at a time, on the server's GPU. Waiting submissions take turns per student, so nobody
+  can fill the queue. This page updates by itself.</p>
+<div hx-get="/partials/queue" hx-trigger="every 5s" hx-swap="innerHTML">
+  {% include "_queue.html" %}
+</div>
+{% endblock %}
