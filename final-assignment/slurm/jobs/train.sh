@@ -11,7 +11,7 @@
 #   slurm/submit.sh train realtime --batch-size 32 --lr 5e-4 --experiment-id realtime-bs32
 #
 # Flags go to `python -m <track>.train`; without flags its defaults are used.
-# See all flags with: apptainer exec container.sif python -m <track>.train --help
+# See all flags with: apptainer exec containers/nncv-pytorch.sif python -m <track>.train --help
 # Checkpoints go to checkpoints/<experiment-id>/, training curves to Weights & Biases.
 set -euo pipefail
 source slurm/lib.sh

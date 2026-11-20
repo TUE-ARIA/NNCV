@@ -89,11 +89,13 @@ final-assignment/
 ├── realtime/          Real-time track:   model.py, train.py, predictor.py
 ├── generative/        Generative track:  model.py, train.py, predictor.py
 ├── slurm/             cluster scripts: setup, submit, train and evaluate jobs
-├── submission/run.py  entrypoint of the submission image (fixed)
+├── submission/        run.py runs your predictor on the server (fixed); package.py builds your zip
 ├── evaluate.py        scores predictions with the server's metrics
 ├── tools/             builds the evaluation sets (already done for you)
+├── docker/            the base images (also the Snellius container)
 ├── docs/              the general documentation pages
-└── Dockerfile         the submission image
+├── .env.example       copied to .env (your W&B key) by slurm/setup.sh
+└── Dockerfile         template for a complete image of your own (advanced, optional)
 ```
 
 Questions? Ask them in the **Discussions** section of this repository, so that everyone benefits from the answers.
