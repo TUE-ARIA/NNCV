@@ -1,0 +1,15 @@
+{% if queue %}
+<table>
+  <tr><th class="rankcol">#</th><th>Student</th><th>Track</th><th>Set</th><th>Submitted</th><th>Status</th></tr>
+  {% for q in queue %}
+  <tr>
+    <td>{{ loop.index }}</td>
+    <td>{{ q.student }}</td>
+    <td>{{ tracks[q.track].name }}</td>
+    <td>{{ cfg.test_sets[q.test_set].label }}</td>
+    <td>{{ q.created_at[5:16].replace('T', ' ') }}</td>
+    <td><span class="badge {{ q.status }}">{{ q.status }}</span></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="muted">The queue is empty: a new submission starts right away.</p>{% endif %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% set t = tracks[track] %}
+{% set ts = cfg.test_sets[test_set] %}
+{% block title %}{{ t.name }} · {{ cfg.site.title }}{% endblock %}
+{% block content %}
+<div class="kicker">Track</div>
+<h1>{{ t.name }}</h1>
+<p class="lead">
+  Ranked on <b>{{ METRIC_LABELS.get(t.ranked_on, t.ranked_on) }}</b>{{ ' (lower is better)' if not t.higher_is_better }}.
+  {% if t.min_fps %}Only submissions with at least <b>{{ t.min_fps }} FPS</b> on this server are ranked.{% endif %}
+  {% if t.mask_dice_floor %}Only submissions whose mask Dice reaches <b>{{ (t.mask_dice_floor * 100) | round | int }}%</b> of that of real frames are ranked.{% endif %}
+  <a href="{{ cfg.site.course_website }}final-assignment/{{ track }}/">Track description</a>
+</p>
+
+<div class="layout">
+  <section>
+    <div class="tabs">
+      {% for key, s in cfg.test_sets.items() %}
+        <a href="/track/{{ track }}?set={{ key }}" class="{{ 'active' if key == test_set }}">{{ s.label }}{{ ' (closed)' if not s.enabled }}</a>
+      {% endfor %}
+    </div>
+
+    <form class="filter" method="get" action="/track/{{ track }}">
+      <input type="hidden" name="set" value="{{ test_set }}">
+      <select name="student" onchange="this.form.submit()" aria-label="Show the submissions of one student">
+        <option value="">Best submission of every student</option>
+        {% for s in students %}<option value="{{ s.name }}" {{ 'selected' if s.name == student }}>{{ s.name }}</option>{% endfor %}
+      </select>
+      {% if student %}<a href="/track/{{ track }}?set={{ test_set }}">show everyone</a>{% endif %}
+    </form>
+
+    <div hx-get="/partials/leaderboard/{{ track }}?set={{ test_set }}&student={{ student | urlencode }}"
+         hx-trigger="every 10s" hx-swap="innerHTML">
+      {% include "_leaderboard.html" %}
+    </div>
+  </section>
+
+  <form class="box" method="post" action="/submit/{{ track }}" enctype="multipart/form-data"
+        onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Uploading…'">
+    <h3>Submit to {{ t.name }}</h3>
+    <label for="student">Name</label>
+    <select id="student" name="student" required>
+      <option value="" disabled {{ 'selected' if not me }}>Choose your name</option>
+      {% for s in students %}<option {{ 'selected' if me and me.id == s.id }}>{{ s.name }}</option>{% endfor %}
+    </select>
+    <label for="password">Password</label>
+    <input id="password" type="password" name="password" required autocomplete="current-password">
+
+    <label>Test set</label>
+    <div class="choice">
+      {% for key, s in cfg.test_sets.items() %}
+        <label><input type="radio" name="test_set" value="{{ key }}" {{ 'checked' if key == 'validation' }} {{ 'disabled' if not s.enabled }}>
+          {{ s.label.split(' (')[0] }}{{ ' (closed)' if not s.enabled }}</label>
+      {% endfor %}
+    </div>
+
+    <label>Kind</label>
+    <div class="choice">
+      <label><input type="radio" name="kind" value="zip" checked> Zip (code + weights)</label>
+      {% if cfg.submissions.allow_custom_images %}<label><input type="radio" name="kind" value="image"> Docker image</label>{% endif %}
+    </div>
+
+    <label for="note">Short description (optional)</label>
+    <input id="note" type="text" name="note" maxlength="200" placeholder="e.g. DINOv2 encoder, focal loss">
+
+    <label for="file">File</label>
+    <input id="file" type="file" name="file" accept=".zip,.tar" required>
+    <div class="hint">Zip up to {{ cfg.submissions.max_upload_gb }} GB{% if cfg.submissions.allow_custom_images %}, image up to {{ cfg.submissions.max_custom_image_gb }} GB{% endif %}.
+      {{ cfg.test_sets.validation.succeeded_per_week }} successful submissions per week to validation{% if cfg.test_sets.hidden.enabled %}, {{ cfg.test_sets.hidden.succeeded_per_week }} to the hidden test{% endif %}.
+      <a href="/help">How to submit</a></div>
+    <button type="submit">Submit</button>
+  </form>
+</div>
+{% endblock %}

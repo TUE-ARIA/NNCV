@@ -1,0 +1,103 @@
+# Settings of the challenge server.
+#
+# Changes take effect on the next page load or job, without a restart,
+# except the settings under `paths` (restart with: docker compose restart).
+# Times are in the timezone below; dates as "2027-04-02 23:59".
+
+site:
+  title: ATLAS Surgical Video Challenge
+  course: "5LSM0 Neural Networks for Computer Vision"
+  course_website: https://tue-aria.github.io/NNCV/
+  timezone: Europe/Amsterdam
+
+# --- uploads -----------------------------------------------------------------
+submissions:
+  open: true                    # false closes all uploads (e.g. during maintenance)
+  deadline: null                # after this moment uploads are closed; null = no deadline
+  max_upload_gb: 20             # zip with code and weights
+  allow_custom_images: true     # complete Docker images (docker save .tar) for advanced students
+  max_custom_image_gb: 40
+  max_pending_per_student: 1    # jobs waiting or running at the same time
+
+# --- test sets ---------------------------------------------------------------
+# succeeded_per_week: successful submissions per student per week (Monday 00:00 to Sunday 23:59),
+# per test set. Failed submissions don't count; waiting and running ones do.
+quota_per_track: true           # true: the quota counts per track; false: shared by all tracks
+test_sets:
+  validation:
+    label: Validation (ATLAS test split)
+    enabled: true
+    succeeded_per_week: 3
+    show_scores: true
+  hidden:
+    label: Hidden test
+    enabled: false              # switch on in the final week
+    succeeded_per_week: 1
+    show_scores: false          # true reveals the hidden-test leaderboard (challenge day)
+
+# --- tracks ------------------------------------------------------------------
+# ranked_on: metric that orders the leaderboard; other metrics are shown too.
+# time_limit_min: maximum run time of one submission (inference only, scoring is extra).
+tracks:
+  segmentation:
+    name: Dice
+    ranked_on: dice
+    higher_is_better: true
+    time_limit_min: 60
+    metrics: [dice]
+  consistency:
+    name: Consistency
+    ranked_on: consistency_score
+    higher_is_better: true
+    time_limit_min: 60
+    metrics: [consistency_score, dice, change_dice]
+  realtime:
+    name: Real-time
+    ranked_on: dice
+    higher_is_better: true
+    time_limit_min: 60
+    min_fps: 25                 # only submissions at least this fast are ranked
+    metrics: [dice, fps]
+  generative:
+    name: Generative
+    ranked_on: fvd
+    higher_is_better: false
+    time_limit_min: 120
+    mask_dice_floor: 0.7        # mask Dice must reach this fraction of that of real frames
+    metrics: [fvd, fid, mask_dice, mask_dice_real]
+
+# --- base images students can choose for a zip submission --------------------
+base_images:
+  pytorch:
+    image: ghcr.io/tue-aria/nncv-pytorch:2027
+    description: PyTorch, torchvision, timm, numpy, Pillow
+  transformers:
+    image: ghcr.io/tue-aria/nncv-transformers:2027
+    description: "Everything in pytorch, plus Hugging Face transformers and accelerate"
+  generative:
+    image: ghcr.io/tue-aria/nncv-generative:2027
+    description: "Everything in transformers, plus diffusers"
+
+scorer_image: ghcr.io/tue-aria/nncv-transformers:2027   # runs evaluate.py; trusted, never sees student code
+
+# --- sandbox of every submission ---------------------------------------------
+sandbox:
+  gpu: "0"                      # GPU index reserved for the running job
+  cpus: 8
+  memory_gb: 24
+  shm_gb: 8
+  tmp_gb: 16                    # writable /tmp inside the job
+  pids: 1024
+  max_log_kb: 512               # job log kept per submission
+
+# --- storage (restart after changing) ----------------------------------------
+paths:
+  data_dir: /srv/nncv/data                          # database, uploads, job folders
+  harness_dir: /srv/nncv/repo/final-assignment      # this repository: submission/run.py, atlas/, evaluate.py
+  eval_data:
+    validation: /srv/nncv/eval/test                 # server layout made by tools/make_eval_sets.py
+    hidden: /srv/nncv/eval/hidden
+  reference_model: /srv/nncv/eval/reference_segmenter.pth
+  torch_cache: /srv/nncv/torch-cache                # weights for FID/FVD, filled by: manage.py prefetch-weights
+  keep_uploads: true                                # keep zips after the job (to review code); custom images are always removed
+  keep_outputs: false                               # keep predictions after scoring

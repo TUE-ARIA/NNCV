@@ -1,0 +1,33 @@
+{% set t = tracks[track] %}
+{% set ts = cfg.test_sets[test_set] %}
+{% if not ts.show_scores %}
+  <p class="panel">Scores on the {{ ts.label }} set are revealed on the challenge day.
+  {% if rows %}{{ rows | map(attribute='student') | unique | list | length }} student(s) have a successful submission.{% endif %}</p>
+  {% if rows %}
+  <table>
+    <tr><th>Student</th><th>Submitted</th><th>Status</th></tr>
+    {% for r in rows %}<tr><td>{{ r.student }}</td><td>{{ r.created_at[:16].replace('T', ' ') }}</td><td><span class="badge succeeded">succeeded</span></td></tr>{% endfor %}
+  </table>
+  {% endif %}
+{% elif not rows %}
+  <p class="muted">No successful submissions {{ 'by ' ~ student if student else 'yet' }}.</p>
+{% else %}
+<table>
+  <tr>
+    <th class="rankcol">#</th><th>Student</th>
+    {% for m in t.metrics %}<th class="num">{{ METRIC_LABELS.get(m, m) }}</th>{% endfor %}
+    <th>Description</th><th>Submitted</th>
+  </tr>
+  {% for r in rows %}
+  <tr class="{{ 'baseline' if r.is_baseline }} {{ 'unranked' if r.unranked and not r.is_baseline }} {{ 'ranked-1' if r.rank == 1 }}">
+    <td>{{ r.rank or '' }}</td>
+    <td>{{ r.student }}{% if r.is_baseline %} <span class="badge base">baseline</span>{% endif %}
+      {% if r.unranked and not r.is_baseline %}<div class="hint">not ranked: {{ r.unranked }}</div>{% endif %}</td>
+    {% for m in t.metrics %}<td class="num">{{ r.scores.get(m) | fmt(m) }}</td>{% endfor %}
+    <td>{{ r.note or '' }}</td>
+    <td><a href="/submission/{{ r.id }}">{{ r.created_at[5:16].replace('T', ' ') }}</a></td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="hint">{% if student %}All successful submissions of {{ student }}.{% else %}Best submission of every student. Updates by itself.{% endif %}</p>
+{% endif %}

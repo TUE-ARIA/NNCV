@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="kicker">My submissions</div>
+<h1>Sign in</h1>
+<p class="lead">See all your submissions, their logs, and how many submissions you have left this week.</p>
+<form class="box" method="post" action="/me" style="max-width:380px;position:static">
+  <label for="student">Name</label>
+  <select id="student" name="student" required>
+    <option value="" disabled selected>Choose your name</option>
+    {% for s in students %}<option>{{ s.name }}</option>{% endfor %}
+  </select>
+  <label for="password">Password</label>
+  <input id="password" type="password" name="password" required autocomplete="current-password">
+  <button type="submit">Sign in</button>
+  <div class="hint">You received your password from the course staff.</div>
+</form>
+{% endblock %}

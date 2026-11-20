@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ cfg.site.title }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/">{{ cfg.site.title }}<small>5LSM0</small></a>
+    <nav>
+      {% for key, t in tracks.items() %}
+        <a href="/track/{{ key }}" class="{{ 'active' if track == key }}">{{ t.name }}</a>
+      {% endfor %}
+      <a href="/queue" class="{{ 'active' if page == 'queue' }}">Queue</a>
+      <a href="/help" class="{{ 'active' if page == 'help' }}">How to submit</a>
+    </nav>
+    <div class="who">
+      {% if me %}<a href="/me">{{ me.name }}</a> · <a href="/logout">sign out</a>{% else %}<a href="/me">My submissions</a>{% endif %}
+    </div>
+  </div>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>
+  <div class="bar">
+    <span>{{ cfg.site.course }}</span>
+    <a href="{{ cfg.site.course_website }}">Course website</a>
+  </div>
+</footer>
+</body>
+</html>

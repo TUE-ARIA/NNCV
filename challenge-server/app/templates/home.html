@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="kicker">Final assignment</div>
+<h1>{{ cfg.site.title }}</h1>
+<p class="lead">Submit your models, follow the queue, and see how you compare. Every track has its own leaderboard; the
+  hidden test set opens in the final week.</p>
+
+{% if not cfg.submissions.open %}<p class="notice">Submissions are closed at the moment.</p>
+{% elif deadline %}<p class="panel">Submissions close on <b>{{ deadline.strftime('%A %d %B %Y, %H:%M') }}</b>.</p>{% endif %}
+
+<h2>Leaderboards <span class="muted" style="font-weight:400;font-size:14px">validation set, top 3</span></h2>
+<div class="grid">
+  {% for key, t in tracks.items() %}
+  <a class="card" href="/track/{{ key }}" style="color:inherit;text-decoration:none">
+    <h3>{{ t.name }}</h3>
+    <div class="metric">Ranked on {{ METRIC_LABELS.get(t.ranked_on, t.ranked_on) }}{{ ', lower is better' if not t.higher_is_better }}</div>
+    {% set top = tops[key] | selectattr('rank') | list %}
+    {% if top %}
+      <ol>{% for r in top %}<li><span><b style="color:var(--red)">{{ r.rank }}</b>&nbsp; {{ r.student }}</span><b>{{ r.value | fmt(t.ranked_on) }}</b></li>{% endfor %}</ol>
+    {% else %}<span class="muted">No ranked submissions yet.</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<h2>Queue</h2>
+<div hx-get="/partials/queue" hx-trigger="every 5s" hx-swap="innerHTML">
+  {% include "_queue.html" %}
+</div>
+{% endblock %}

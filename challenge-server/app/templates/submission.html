@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% set t = tracks[sub.track] %}
+{% block head %}{% if sub.status in ('queued', 'running') %}<meta http-equiv="refresh" content="10">{% endif %}{% endblock %}
+{% block title %}Submission {{ sub.id }} · {{ cfg.site.title }}{% endblock %}
+{% block content %}
+<div class="kicker">Submission {{ sub.id }}</div>
+<h1>{{ t.name }} · {{ cfg.test_sets[sub.test_set].label }}</h1>
+<p class="lead">by {{ sub.student }}, {{ sub.created_at[:16].replace('T', ' ') }}{% if sub.note %} · {{ sub.note }}{% endif %}</p>
+
+<p><span class="badge {{ sub.status }}" style="font-size:14px;padding:4px 12px">{{ sub.status }}</span>
+  {% if sub.status == 'queued' and position is not none %}
+    &nbsp;position {{ position + 1 }} in the <a href="/queue">queue</a>. This page refreshes by itself.
+  {% elif sub.status == 'running' %}&nbsp;running on the GPU now. This page refreshes by itself.{% endif %}
+</p>
+
+{% if sub.status == 'failed' %}
+  <p class="notice">{{ sub.error }}</p>
+{% endif %}
+
+{% if sub.status == 'succeeded' %}
+  {% if show_scores %}
+    <div class="scores">
+      {% for m in t.metrics %}<div><span>{{ METRIC_LABELS.get(m, m) }}</span><b>{{ sub.scores.get(m) | fmt(m) }}</b></div>{% endfor %}
+    </div>
+    {% if t.min_fps and sub.scores.get('fps', 0) < t.min_fps %}<p class="hint">Not ranked: below {{ t.min_fps }} FPS.</p>{% endif %}
+  {% else %}
+    <p class="panel">Your submission ran successfully. Scores on this set are revealed on the challenge day.</p>
+  {% endif %}
+  {% if sub.wall_seconds %}<p class="hint">Run time on the server: {{ sub.wall_seconds | fmt('wall_seconds') }} s.</p>{% endif %}
+{% endif %}
+
+<h2>Log</h2>
+{% if owner %}
+  <p><a href="/submission/{{ sub.id }}/log" target="_blank">Open the log of your submission</a> (output of your code).</p>
+{% else %}
+  <p class="muted">Logs are only visible to their owner. <a href="/me">Sign in</a> to see yours.</p>
+{% endif %}
+<p><a href="/track/{{ sub.track }}?set={{ sub.test_set }}">Back to the {{ t.name }} leaderboard</a></p>
+{% endblock %}

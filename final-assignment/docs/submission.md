@@ -1,20 +1,20 @@
 # Submitting
 
-You submit a **Docker image**, exported as a `.tar` file, that contains your code and your weights. The server runs it on clips you haven't seen and returns your scores.
+You submit a **zip with your code and weights** on the challenge website. The server runs it in one of the course's environments, on its GPU and without internet access, on clips you haven't seen, and puts your scores on the leaderboard of your track.
 
 ## 1. How the server runs your code
 
-The entrypoint of the image is [submission/run.py](../submission/run.py). It:
+Your code runs inside a ready-made Docker image, the *base image*, that you choose. The server adds the fixed harness [submission/run.py](../submission/run.py), which:
 
-1. builds the `Predictor` from your track's `predictor.py`, with the weights at `/app/model.pt`,
+1. builds the `Predictor` from your track's `predictor.py` with your weights,
 2. reads the clips from `/data/<clip_id>/` and writes your results to `/output/<clip_id>/`, with the same file names,
 3. for the segmentation tracks, calls `reset()` at the start of every clip and `step(frame)` for every frame in order, timing each call,
 4. for the generative track, calls `generate(masks)` once per clip of 16 masks.
 
-The server uses its own copies of `submission/run.py` and `atlas/metrics.py`, so changing them has no effect. Put your changes in your track's folder or in new files.
+The server scores the results with its own copies of `submission/run.py`, `atlas/metrics.py` and `evaluate.py`, so changing them has no effect. Put your changes in your track's folder or in new files.
 
 > [!WARNING]
-> The image has **no internet access** on the server. Everything your predictor needs must be inside the image: build your model with `pretrained=False` in `predictor.py`, and load your own checkpoint.
+> Your code has **no internet access** on the server. Everything it needs must be in the zip: build your model with `pretrained=False` in `predictor.py`, and load your own checkpoint.
 
 ## 2. Evaluate on Snellius first
 
@@ -33,47 +33,60 @@ data/eval/val/generative/masks/<clip_id>/frame_*.png      input masks, 16 per cl
 data/eval/val/generative/frames/<clip_id>/frame_*.png     real frames
 ```
 
-`data/eval/test` has the same layout and holds the data of the validation server.
+`data/eval/test` has the same layout and holds the data of the validation leaderboard.
 
-## 3. Build the image
+## 3. Make the zip
 
-On your laptop, copy the checkpoint you want to submit to `final-assignment/model.pt`, and build the image from the `final-assignment` folder with your track as build argument:
-
-```bash
-scp <username>@snellius.surf.nl:NNCV/final-assignment/checkpoints/my-run/best.pt model.pt
-docker build --build-arg TRACK=consistency -t nncv-consistency .
-```
-
-`TRACK` is `segmentation`, `consistency`, `realtime` or `generative`. If your predictor needs extra Python packages, add them to the `pip install` line in the [Dockerfile](../Dockerfile).
-
-## 4. Test the image
-
-Copy one or two clips from `data/eval/val` to a folder `local_data/` on your laptop, and run the image on them:
+From the `final-assignment` folder:
 
 ```bash
-docker run --rm --gpus all -v "$(pwd)/local_data:/data" -v "$(pwd)/local_output:/output" nncv-consistency
+python -m submission.package --track consistency --checkpoint checkpoints/my-run/best.pt --base-image pytorch
 ```
 
-On Windows PowerShell, write `${PWD}` instead of `$(pwd)`. Without an NVIDIA GPU, leave out `--gpus all`: it is slow, but it shows whether the image works.
+This writes `submission_consistency.zip` with your track folder, every other course package your code imports (for example `segmentation/` when your consistency model reuses its U-Net), your weights and a `submission.yaml`. For a folder of weights, for example a Hugging Face model, pass the folder as `--checkpoint`.
 
-## 5. Export and submit
+Choose the base image that has what your code needs:
+
+| `--base-image` | Contents |
+| --- | --- |
+| `pytorch` | PyTorch, torchvision, timm, NumPy, Pillow, SciPy, OpenCV |
+| `transformers` | everything in `pytorch`, plus Hugging Face transformers and accelerate |
+| `generative` | everything in `transformers`, plus diffusers |
+
+Need a package that isn't in the image? Download its wheels for the image's Python version (check it with `docker run --rm ghcr.io/tue-aria/nncv-pytorch:2027 python --version`) and add them with `--wheels`; the server installs them offline before your code runs:
 
 ```bash
-docker save -o submission_consistency.tar nncv-consistency
+pip download --only-binary=:all: --python-version <version> --platform manylinux2014_x86_64 -d wheels <package>
+python -m submission.package --track realtime --checkpoint best.pt --wheels wheels
 ```
 
-Upload the `.tar` to the server of your track. The servers are only reachable from the TU/e network or over VPN.
+## 4. Test it in the same environment (optional)
 
-| Track | Validation server (until TBD) | Hidden test server (final week) |
-| --- | --- | --- |
-| Dice | TBD | TBD |
-| Consistency | TBD | TBD |
-| Real-time | TBD | TBD |
-| Generative | TBD | TBD |
+The base images are public, so you can run your submission exactly as the server does, for example on a few clips from `data/eval/val` copied to `local_data/`:
 
-- The **validation servers** score on the `test` split and show a leaderboard. These are the scores you report in your paper.
-- The **hidden test servers** open in the final week and take **TBD submissions per track**. They don't return scores: the ranking is announced on the challenge day, and the bonus points are based on it.
-- Every submission has a time limit of **TBD minutes**.
+```bash
+unzip submission_consistency.zip -d my_submission
+docker run --rm --gpus all --network none \
+  -v "$(pwd)/my_submission:/submission:ro" -v "$(pwd):/harness:ro" \
+  -v "$(pwd)/local_data:/data:ro" -v "$(pwd)/local_output:/output" \
+  -e PYTHONPATH=/submission:/harness \
+  ghcr.io/tue-aria/nncv-pytorch:2027 \
+  python /harness/submission/run.py --track consistency --input-dir /data --output-dir /output --checkpoint /submission/model.pt
+```
+
+Run it from the `final-assignment` folder. On Windows PowerShell, write `${PWD}` instead of `$(pwd)`. Without an NVIDIA GPU, leave out `--gpus all`: it is slow, but it shows whether your code runs. On Snellius, the same image works with Apptainer.
+
+## 5. Upload it
+
+Open the challenge website on the TU/e network or over VPN, go to the page of your track, choose your name, enter the password you received from the staff, and upload the zip.
+
+- You can follow your submission in the queue; its scores and log appear on the submission page and under *My submissions*.
+- **Validation**: scores on the `test` split, shown on the leaderboard. These are the scores you report in your paper.
+- **Hidden test**: opens in the final week. Results are not shown; the ranking is announced on the challenge day, and the bonus points are based on it.
+- The weekly number of successful submissions, the time limits and the upload size are listed on the website under *How to submit*. Failed submissions don't count.
+
+> [!TIP]
+> **Advanced: a complete Docker image.** If the base images and wheels are not enough, you can upload a complete image instead (`docker save -o image.tar <name>`). Build it with the [Dockerfile](../Dockerfile): it must contain Python with PyTorch, NumPy and Pillow, your code in `/app` and your weights in `/app/model.pt`. Images are large, so use this only if you need it.
 
 Something doesn't work? See the [FAQ](faq.md#submission).
 
