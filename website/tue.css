@@ -1,0 +1,17 @@
+/* TU/e red as the theme colour, the same as on the challenge website */
+:root,
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #c81919;
+  --md-primary-fg-color--light: #e04848;
+  --md-primary-fg-color--dark: #a91414;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.7);
+  --md-accent-fg-color: #c81919;
+  --md-accent-fg-color--transparent: rgba(200, 25, 25, 0.1);
+}
+
+/* links in dark mode: a lighter red that stays readable on the dark background */
+[data-md-color-scheme="slate"] {
+  --md-typeset-a-color: #ff6b6b;
+  --md-accent-fg-color: #ff6b6b;
+}
