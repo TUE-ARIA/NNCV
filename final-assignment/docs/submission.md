@@ -53,10 +53,10 @@ Choose the base image that has what your code needs:
 | `transformers` | everything in `pytorch`, plus Hugging Face transformers and accelerate |
 | `generative` | everything in `transformers`, plus diffusers |
 
-Need a package that isn't in the image? Download its wheels for the image's Python version (check it with `docker run --rm ghcr.io/tue-aria/nncv-pytorch:2027 python --version`) and add them with `--wheels`; the server installs them offline before your code runs:
+Need a package that isn't in the image? Download its wheels for the image's Python (3.12, Linux) and add them with `--wheels`; the server installs them offline before your code runs:
 
 ```bash
-pip download --only-binary=:all: --python-version <version> --platform manylinux2014_x86_64 -d wheels <package>
+pip download --only-binary=:all: --python-version 3.12 --platform manylinux2014_x86_64 -d wheels <package>
 python -m submission.package --track realtime --checkpoint best.pt --wheels wheels
 ```
 

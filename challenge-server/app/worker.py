@@ -64,10 +64,21 @@ def run_submission(sub: dict) -> dict:
             sandbox.remove_image(tag)
     (work / "inference.log").write_text(text, encoding="utf-8")
     if code_ is None:
-        return {"ok": False, "error": f"Time limit of {timeout // 60} minutes exceeded.", "seconds": seconds}
+        return {"ok": False, "error": f"Time limit of {timeout / 60:g} minutes exceeded.", "seconds": seconds}
     if code_ != 0:
-        return {"ok": False, "error": f"The submission stopped with exit code {code_}. See the log.", "seconds": seconds}
+        reason = last_error(text)
+        return {"ok": False, "seconds": seconds,
+                "error": (f"Your code stopped with: {reason.rstrip('.')}." if reason else f"Your code stopped with exit code {code_}.")
+                         + " See the log for details."}
     return {"ok": True, "seconds": seconds}
+
+
+def last_error(log: str) -> str | None:
+    """Last line of a Python traceback, e.g. 'ValueError: mask shape (10, 10) must equal ...'."""
+    lines = [ln.strip() for ln in log.strip().splitlines() if ln.strip()]
+    if not any(ln.startswith("Traceback") for ln in lines):
+        return None
+    return lines[-1][:300]
 
 
 def score(sub: dict) -> dict:
