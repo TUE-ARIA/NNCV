@@ -2,6 +2,7 @@
 
 > [!TIP]
 > This documentation is also a website, with search and navigation: **[tue-aria.github.io/NNCV](https://tue-aria.github.io/NNCV/)**.
+> The challenge website with the leaderboards is at **[http://131.155.127.10](http://131.155.127.10/)**, on the TU/e network or over the TU/e VPN.
 
 In this assignment you train neural networks on **surgical video**. You segment anatomy and instruments in laparoscopic and robot-assisted surgery, make that segmentation stable over time or fast enough for the operating room, or generate realistic surgical video from segmentation masks.
 

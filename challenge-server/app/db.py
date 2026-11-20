@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS students (
     name          TEXT NOT NULL UNIQUE,
     email         TEXT,
     password_hash TEXT NOT NULL,
-    is_baseline   INTEGER NOT NULL DEFAULT 0,   -- staff entry shown as reference, never ranked
+    is_baseline   INTEGER NOT NULL DEFAULT 0,   -- reference entry shown on leaderboards, never ranked
+    is_staff      INTEGER NOT NULL DEFAULT 0,   -- may use the admin page; never ranked
     active        INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS submissions (
@@ -59,6 +60,9 @@ def connect():
 def init():
     with connect() as con:
         con.executescript(SCHEMA)
+        columns = {r["name"] for r in con.execute("PRAGMA table_info(students)")}
+        if "is_staff" not in columns:              # databases made before the staff role existed
+            con.execute("ALTER TABLE students ADD COLUMN is_staff INTEGER NOT NULL DEFAULT 0")
 
 
 def stamp() -> str:
@@ -91,16 +95,22 @@ def student_by_id(sid):
         return dict(r) if r else None
 
 
-def upsert_student(name, email, password_hash, is_baseline=False):
+def upsert_student(name, email, password_hash, is_baseline=False, is_staff=False):
     with connect() as con:
-        con.execute("""INSERT INTO students (name, email, password_hash, is_baseline) VALUES (?, ?, ?, ?)
+        con.execute("""INSERT INTO students (name, email, password_hash, is_baseline, is_staff) VALUES (?, ?, ?, ?, ?)
                        ON CONFLICT(name) DO UPDATE SET email = excluded.email, password_hash = excluded.password_hash,
-                       is_baseline = excluded.is_baseline, active = 1""",
-                    (name, email, password_hash, int(is_baseline)))
+                       is_baseline = excluded.is_baseline, is_staff = excluded.is_staff, active = 1""",
+                    (name, email, password_hash, int(is_baseline), int(is_staff)))
+
+
+def update_student(sid, **fields):
+    sets = ", ".join(f"{k} = ?" for k in fields)
+    with connect() as con:
+        con.execute(f"UPDATE students SET {sets} WHERE id = ?", (*fields.values(), sid))
 
 
 # ------------------------------------------------------------------ submissions
-SUB_COLUMNS = "s.*, st.name AS student, st.is_baseline"
+SUB_COLUMNS = "s.*, st.name AS student, st.is_baseline, st.is_staff"
 
 
 def add_submission(student_id, track, test_set, kind, base_image, note, upload_path, upload_bytes) -> int:

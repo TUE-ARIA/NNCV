@@ -3,8 +3,9 @@
     docker compose exec worker python manage.py <command> [options]
 
 Commands:
-    import-students roster.csv passwords.csv   add students (columns: name,email); writes their new passwords
-    reset-password "Name"                      new password for one student
+    import-students roster.csv passwords.csv   add accounts (columns: name, optional email and role); writes their passwords
+    set-role "Name" staff|student              staff may use the admin page on the website
+    reset-password "Name"                      new password for one account
     add-baseline "Baseline"                    staff entry, shown on leaderboards but never ranked
     submit "Name" TRACK FILE [--set hidden]    queue a submission for anyone, without quota (e.g. baselines)
     list [--status queued]                     recent submissions
@@ -19,35 +20,47 @@ import shutil
 import sys
 from pathlib import Path
 
-from app import db
+from app import db, rules
 from app.packages import check_image_tar, check_zip
 from app.security import hash_password, new_password
 from app.settings import config, data_dir
 
 
+ROLES = ("student", "staff")
+
+
 def import_students(args):
     rows = list(csv.DictReader(open(args.roster, newline="", encoding="utf-8-sig")))
     if not rows or "name" not in rows[0]:
-        sys.exit("The roster needs a header row with at least the column 'name' (and optionally 'email').")
+        sys.exit("The roster needs a header row with at least the column 'name' (optionally 'email' and 'role').")
+    roles = {(r.get("role") or "student").strip().lower() for r in rows}
+    if roles - set(ROLES):
+        sys.exit(f"Unknown role(s) {sorted(roles - set(ROLES))}; use {' or '.join(ROLES)}.")
     out = []
     for r in rows:
         name = r["name"].strip()
         if not name:
             continue
-        pw = new_password()
-        db.upsert_student(name, (r.get("email") or "").strip(), hash_password(pw))
-        out.append({"name": name, "email": r.get("email", ""), "password": pw})
+        pw, role = new_password(), (r.get("role") or "student").strip().lower()
+        db.upsert_student(name, (r.get("email") or "").strip(), hash_password(pw), is_staff=role == "staff")
+        out.append({"name": name, "email": r.get("email", ""), "role": role, "password": pw})
     with open(args.passwords, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["name", "email", "password"])
+        w = csv.DictWriter(f, fieldnames=["name", "email", "role", "password"])
         w.writeheader()
         w.writerows(out)
-    print(f"{len(out)} students imported. Passwords written to {args.passwords}: send them, then delete the file.")
+    print(f"{len(out)} accounts imported. Passwords written to {args.passwords}: send them, then delete the file.")
+
+
+def set_role(args):
+    st = db.student_by_name(args.name) or sys.exit(f"No account named {args.name!r}.")
+    db.update_student(st["id"], is_staff=int(args.role == "staff"))
+    print(f"{st['name']} is now {args.role}.")
 
 
 def reset_password(args):
-    st = db.student_by_name(args.name) or sys.exit(f"No student named {args.name!r}.")
+    st = db.student_by_name(args.name) or sys.exit(f"No account named {args.name!r}.")
     pw = new_password()
-    db.upsert_student(st["name"], st["email"], hash_password(pw), bool(st["is_baseline"]))
+    db.update_student(st["id"], password_hash=hash_password(pw))
     print(f"New password for {st['name']}: {pw}")
 
 
@@ -77,17 +90,17 @@ def list_subs(args):
 
 def cancel(args):
     s = db.submission(args.id) or sys.exit("No such submission.")
-    if s["status"] != "queued":
-        sys.exit(f"Submission {args.id} is {s['status']}; only waiting submissions can be cancelled.")
-    db.update_submission(args.id, status="cancelled", finished_at=db.stamp(), error="Cancelled by staff.")
+    reason = rules.cancel(s)
+    if reason:
+        sys.exit(reason)
     print("Cancelled.")
 
 
 def requeue(args):
     s = db.submission(args.id) or sys.exit("No such submission.")
-    if not Path(s["upload_path"]).exists():
-        sys.exit("The upload of this submission no longer exists.")
-    db.update_submission(args.id, status="queued", started_at=None, finished_at=None, scores=None, error=None)
+    reason = rules.requeue(s)
+    if reason:
+        sys.exit(reason)
     print("Queued again.")
 
 
@@ -119,6 +132,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("import-students"); c.add_argument("roster"); c.add_argument("passwords"); c.set_defaults(f=import_students)
+    c = sub.add_parser("set-role"); c.add_argument("name"); c.add_argument("role", choices=ROLES); c.set_defaults(f=set_role)
     c = sub.add_parser("reset-password"); c.add_argument("name"); c.set_defaults(f=reset_password)
     c = sub.add_parser("add-baseline"); c.add_argument("name"); c.set_defaults(f=add_baseline)
     c = sub.add_parser("submit"); c.add_argument("name"); c.add_argument("track"); c.add_argument("file")

@@ -19,6 +19,7 @@
 
 {% if sub.status == 'succeeded' %}
   {% if show_scores %}
+    {% if not cfg.test_sets[sub.test_set].show_scores %}<p class="hint">Staff view: students don't see these scores until they are revealed.</p>{% endif %}
     <div class="scores">
       {% for m in t.metrics %}<div><span>{{ METRIC_LABELS.get(m, m) }}</span><b>{{ sub.scores.get(m) | fmt(m) }}</b></div>{% endfor %}
     </div>

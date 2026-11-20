@@ -86,3 +86,9 @@ button:disabled { background: var(--muted); cursor: progress; }
 .scores { display: flex; gap: 28px; flex-wrap: wrap; margin: 8px 0 4px; }
 .scores div b { display: block; font-size: 28px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .scores div span { font-size: 12px; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; }
+
+/* admin actions: small inline buttons that look like links */
+td.actions { white-space: nowrap; }
+td.actions form { display: inline; margin-left: 8px; }
+button.link { background: none; color: var(--red); padding: 0; margin: 0; width: auto; font-weight: 400; font-size: inherit; }
+button.link:hover { background: none; text-decoration: underline; }
