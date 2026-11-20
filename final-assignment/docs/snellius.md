@@ -6,10 +6,10 @@ All cluster scripts are in the `slurm/` folder:
 
 ```text
 slurm/
-├── setup.sh             one-time setup: pulls the container and links the data
+├── setup.sh             one-time setup: links the data and the containers
 ├── submit.sh            submits a job with the right partition, GPU and CPUs
 ├── servers/
-│   └── snellius.env     cluster settings and shared paths (partition, container, data)
+│   └── snellius.env     cluster settings and shared paths (partition, containers, data)
 └── jobs/
     ├── train.sh         train a model for a track
     └── evaluate.sh      run and score a checkpoint exactly like the challenge server
@@ -41,24 +41,34 @@ Run `git pull` before every job, so the cluster runs your latest code.
 bash slurm/setup.sh
 ```
 
-This pulls the container to `container.sif` and links the shared course data. It takes a few minutes. Afterwards you have:
+This links the shared course data and the containers, and creates your `.env`. Afterwards you have:
 
 - `data/atlas120k`: the dataset (`train`, `val`, `test`),
 - `data/eval`: the `val` and `test` splits in the server's format (see [Submitting](submission.md)),
-- `data/reference_segmenter.pth`: the ATLAS reference segmenter for the generative mask Dice.
+- `data/reference_segmenter.pth`: the ATLAS reference segmenter for the generative mask Dice,
+- `containers/nncv-<image>.sif`: the three base images, the same ones the challenge server runs your submission in, so what works here works there.
 
 These are links to a shared folder, so they don't use your storage quota. Don't write into them.
 
+Every job runs in the `pytorch` container, unless you choose another one with `--image` (see [Step 4](#step-4-train)):
+
+| Image | Contents |
+| --- | --- |
+| `pytorch` | PyTorch, torchvision, timm, NumPy, Pillow, SciPy, OpenCV, W&B |
+| `transformers` | everything in `pytorch`, plus Hugging Face transformers and accelerate |
+| `generative` | everything in `transformers`, plus diffusers |
+
+If a container is missing from `containers/`, `bash slurm/setup.sh <image>` downloads it into its own file. This takes a few minutes.
+
 ## Step 3: Set your Weights & Biases key
 
-[.env](../.env) holds the environment variables passed into the container. Open it (`nano .env`, or through VS Code or MobaXterm) and set at least:
+`setup.sh` created `.env`, a copy of [.env.example](../.env.example) with the environment variables passed into the container. Open it (`nano .env`, or through VS Code or MobaXterm) and fill in your API key, which you find at [wandb.ai/authorize](https://wandb.ai/authorize):
 
 ```env
 WANDB_API_KEY=<your W&B API key>
-WANDB_DIR=/home/<username>/wandb
 ```
 
-Never commit your API key.
+`.env` is in `.gitignore`, so your key never ends up in your public repository. Never add it with `git add -f`.
 
 ## Step 4: Train
 
@@ -68,8 +78,9 @@ slurm/submit.sh train consistency --epochs 30 --experiment-id gru-30ep
 ```
 
 - The first argument after `train` is the track: `segmentation`, `consistency`, `realtime` or `generative`.
-- Everything after it is passed to `python -m <track>.train`. Without flags, the defaults in that `train.py` are used. To see all options: `apptainer exec container.sif python -m segmentation.train --help`.
+- Everything after it is passed to `python -m <track>.train`. Without flags, the defaults in that `train.py` are used. To see all options: `apptainer exec containers/nncv-pytorch.sif python -m segmentation.train --help`.
 - Give every run its own `--experiment-id`. Checkpoints go to `checkpoints/<experiment-id>/`, so a reused name overwrites an earlier run.
+- To use another container, put `--image` before the job name, for example `slurm/submit.sh --image transformers train segmentation`. Evaluate and submit with the same image you trained with.
 
 ## Step 5: Evaluate
 

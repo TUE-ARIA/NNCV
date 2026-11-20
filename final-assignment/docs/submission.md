@@ -62,10 +62,24 @@ python -m submission.package --track realtime --checkpoint best.pt --wheels whee
 
 ## 4. Test it in the same environment (optional)
 
-The base images are public, so you can run your submission exactly as the server does, for example on a few clips from `data/eval/val` copied to `local_data/`:
+The containers on Snellius are the server's base images, so you can run the unpacked zip exactly as the server does. This catches files missing from the zip. From the `final-assignment` folder, copy a few clip folders from `data/eval/val/segmentation/images` (for the generative track: `data/eval/val/generative/masks`) to `local_data/`, then:
 
 ```bash
 unzip submission_consistency.zip -d my_submission
+mkdir -p local_output
+srun --partition=gpu_a100 --gpus=1 --time=00:15:00 \
+  apptainer exec --nv --containall \
+  --bind "$PWD/my_submission:/submission:ro,$PWD:/harness:ro,$PWD/local_data:/data:ro,$PWD/local_output:/output" \
+  --env PYTHONPATH=/submission:/harness \
+  containers/nncv-pytorch.sif \
+  python /harness/submission/run.py --track consistency --input-dir /data --output-dir /output --checkpoint /submission/model.pt
+```
+
+Use the container of the base image you chose, for example `containers/nncv-transformers.sif`.
+
+With Docker Desktop you can do the same on your own computer. The images are public; this also blocks the internet, as on the server:
+
+```bash
 docker run --rm --gpus all --network none \
   -v "$(pwd)/my_submission:/submission:ro" -v "$(pwd):/harness:ro" \
   -v "$(pwd)/local_data:/data:ro" -v "$(pwd)/local_output:/output" \
@@ -74,7 +88,7 @@ docker run --rm --gpus all --network none \
   python /harness/submission/run.py --track consistency --input-dir /data --output-dir /output --checkpoint /submission/model.pt
 ```
 
-Run it from the `final-assignment` folder. On Windows PowerShell, write `${PWD}` instead of `$(pwd)`. Without an NVIDIA GPU, leave out `--gpus all`: it is slow, but it shows whether your code runs. On Snellius, the same image works with Apptainer.
+On Windows PowerShell, write `${PWD}` instead of `$(pwd)`. Without an NVIDIA GPU, leave out `--gpus all`: it is slow, but it shows whether your code runs.
 
 ## 5. Upload it
 

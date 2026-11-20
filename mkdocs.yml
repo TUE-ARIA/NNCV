@@ -17,6 +17,7 @@ exclude_docs: |
   *.txt
   *.yml
   .env
+  *.example
   Dockerfile
   .dockerignore
   .gitignore

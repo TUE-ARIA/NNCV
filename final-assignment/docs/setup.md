@@ -10,7 +10,7 @@ Before you start, install the tools below and create the accounts you need. This
 | **Git** + a **GitHub** account | Version control; you hand in your code as a public GitHub repository | [git-scm.com](https://git-scm.com/downloads), [github.com/join](https://github.com/join) |
 | **Weights & Biases** account | Following your training runs, which run on the cluster without a screen | [wandb.ai](https://wandb.ai/) |
 | **MobaXterm** (Windows, optional) | SSH and drag-and-drop file transfer to Snellius. On macOS or Linux, `ssh` in a terminal is enough | [mobaxterm.mobatek.net](https://mobaxterm.mobatek.net/) |
-| **Docker Desktop** | Building the submission image | [docker.com](https://www.docker.com/products/docker-desktop/) |
+| **Docker Desktop** (optional) | Testing your submission on your own computer, or building a complete image of your own. Not needed otherwise: Snellius runs the same images with Apptainer | [docker.com](https://www.docker.com/products/docker-desktop/) |
 
 Useful VS Code extensions: **Python**, **Remote - SSH**, and **GitHub Pull Requests**.
 
@@ -50,8 +50,7 @@ Run these in a terminal:
 
 ```bash
 git --version
-docker --version
-docker run --rm hello-world     # Docker Desktop must be running
+docker run --rm hello-world     # only if you installed Docker Desktop; it must be running
 ```
 
 Also check that:
@@ -63,7 +62,7 @@ Also check that:
 ## Tips
 
 - **GitHub on Snellius:** create a Personal Access Token (*Settings → Developer settings → Personal access tokens*) and use it to clone, as described in [Snellius](snellius.md).
-- **W&B API key:** you find it in your W&B account settings. You put it in `.env` on Snellius (see [Snellius](snellius.md)).
+- **W&B API key:** you find it at [wandb.ai/authorize](https://wandb.ai/authorize). You put it in `.env` on Snellius, a file that is never committed (see [Snellius](snellius.md)).
 - **Debugging:** use breakpoints in VS Code ([how-to](https://code.visualstudio.com/docs/python/debugging)) on a small piece of data before you start long jobs.
 
 Next: [Snellius](snellius.md), where you train your first baseline.

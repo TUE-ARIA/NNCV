@@ -78,6 +78,27 @@ sudo rm -rf /srv/nncv/data/nncv.sqlite* /srv/nncv/data/uploads /srv/nncv/data/jo
 docker compose up -d
 ```
 
+## The course folder on Snellius
+
+Students' `slurm/setup.sh` links everything from the shared folder `SHARED_DIR` in `final-assignment/slurm/servers/snellius.env`. Fill it once, and give students read access:
+
+```text
+<SHARED_DIR>/
+├── atlas120k/                  the dataset: train / val / test
+├── eval/val/, eval/test/       made with tools/make_eval_sets.py, as on the server
+├── reference_segmenter.pth     the ATLAS reference model
+└── containers/                 the three base images
+```
+
+```bash
+cd <SHARED_DIR>/containers
+for image in pytorch transformers generative; do
+  apptainer pull --force nncv-$image.sif docker://ghcr.io/tue-aria/nncv-$image:2027
+done
+```
+
+Run the same loop after the images are rebuilt. Students' links then use the new images at once. Without `containers/`, `setup.sh` downloads the `pytorch` image for every student into their own folder, which costs each of them several GB of quota.
+
 ## During the course
 
 | Task | How |
