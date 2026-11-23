@@ -14,6 +14,7 @@ from app.settings import config
 
 HARNESS = "/harness"           # final-assignment/ of the repository, read-only
 USER = "1000:1000"
+LABEL = "nncv.job"             # marks job and scorer containers, to find leftovers after a restart
 
 
 def client():
@@ -46,7 +47,8 @@ def run(image: str, command: list[str], mounts: dict, timeout_s: float, env: dic
     opts = _limits()
     opts["environment"].update(env or {})
     volumes = {str(host): {"bind": inside, "mode": mode} for host, (inside, mode) in mounts.items()}
-    c = client().containers.run(image, command, volumes=volumes, detach=True, entrypoint=entrypoint, **opts)
+    c = client().containers.run(image, command, volumes=volumes, detach=True, entrypoint=entrypoint,
+                                labels={LABEL: "1"}, **opts)
     start = time.monotonic()
     try:
         result = c.wait(timeout=timeout_s)
@@ -58,6 +60,14 @@ def run(image: str, command: list[str], mounts: dict, timeout_s: float, env: dic
     log = c.logs(stdout=True, stderr=True).decode(errors="replace")
     c.remove(force=True)
     return code, _tail(log), seconds
+
+
+def remove_leftovers() -> int:
+    """Remove job containers left running when the worker stopped; returns how many."""
+    leftovers = client().containers.list(all=True, filters={"label": LABEL})
+    for c in leftovers:
+        c.remove(force=True)
+    return len(leftovers)
 
 
 def _tail(log: str) -> str:

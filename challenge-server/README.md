@@ -50,6 +50,23 @@ The site then runs on port 80 of the server (change `NNCV_PORT` in `.env`).
 > [!NOTE]
 > The base images on the GitHub Container Registry are private when first published. Make them public once, under the organization's *Packages* → package → *Package settings* → *Change visibility*, so students and the server can pull them without logging in.
 
+## Starting and stopping
+
+Run these from `/srv/nncv/repo/challenge-server`:
+
+| Task | Command |
+| --- | --- |
+| Shut down | `docker compose down` |
+| Start | `docker compose up -d` |
+| Restart | `docker compose restart` |
+| Update after `git pull` | `docker compose up -d --build` |
+| Is it running? | `docker compose ps` |
+| Follow the jobs | `docker compose logs -f worker` (Ctrl+C stops following, not the server) |
+
+After a reboot of the server the site and worker start by themselves, unless they were shut down with `docker compose down`. Students, submissions and results are kept in `/srv/nncv/data`, outside the containers. A job that was running goes back into the queue and runs again from the start.
+
+To stop new submissions without shutting down, set `submissions.open: false` in `config.yaml`. The leaderboards stay online.
+
 ## Accounts: students, staff and baselines
 
 ```bash
@@ -112,7 +129,10 @@ Run the same loop after the images are rebuilt. Students' links then use the new
 | New password for an account | the *Admin* page, or `python manage.py reset-password "Name"` |
 | Logs of a failed job | *log* on the *Admin* page, or `/srv/nncv/data/jobs/<id>/inference.log` and `score.log` |
 | Update the harness or metrics | `git pull` in `/srv/nncv/repo`; the next job uses it |
+| Update the website or worker | `git pull`, then `docker compose up -d --build` |
 | Restart after changing `paths` | `docker compose restart` |
+
+Run `manage.py` inside the worker container: `docker compose exec worker python manage.py <command>`. `python manage.py --help` lists all commands.
 
 Back up `/srv/nncv/data/nncv.sqlite` regularly; it holds all students and results.
 

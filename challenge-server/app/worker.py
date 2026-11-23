@@ -142,7 +142,10 @@ def cleanup(sub: dict):
 
 
 def recover():
-    """Jobs that were running when the worker stopped go back into the queue."""
+    """Jobs that were running when the worker stopped go back into the queue, and their containers are removed."""
+    removed = sandbox.remove_leftovers()
+    if removed:
+        log.warning("removed %d job container(s) left from before the restart", removed)
     for sub in db.submissions("s.status = 'running'"):
         db.update_submission(sub["id"], status="queued", started_at=None)
         log.warning("job %s re-queued after restart", sub["id"])
